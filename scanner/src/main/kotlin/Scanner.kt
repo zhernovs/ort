@@ -19,11 +19,8 @@
 
 package com.here.ort.scanner
 
-import com.here.ort.downloader.DownloadException
-import com.here.ort.downloader.Main
 import com.here.ort.model.Package
 import com.here.ort.scanner.scanners.*
-import com.here.ort.utils.safeMkdirs
 
 import java.io.File
 import java.util.SortedSet
@@ -37,6 +34,7 @@ abstract class Scanner {
          */
         val ALL by lazy {
             listOf(
+                    ClearlyDefined,
                     Licensee,
                     ScanCode
             )
@@ -50,80 +48,7 @@ abstract class Scanner {
      */
     override fun toString(): String = javaClass.simpleName
 
-    /**
-     * Scan the provided [pkg] for license information, writing results to [outputDirectory]. If a scan result is found
-     * in the cache, it is used without running the actual scan. If no cached scan result is found, the package's source
-     * code is downloaded and scanned afterwards.
-     *
-     * @param pkg The package to scan.
-     * @param outputDirectory The base directory to store scan results in.
-     * @param downloadDirectory The directory to download source code to. Defaults to [outputDirectory]/downloads if
-     *                          null.
-     *
-     * @return The set of found licenses.
-     *
-     * @throws ScanException In case the package could not be scanned.
-     */
-    fun scan(pkg: Package, outputDirectory: File, downloadDirectory: File? = null): Result {
-        val scanResultsDirectory = File(outputDirectory, "scanResults").apply { safeMkdirs() }
-        val scannerName = toString().toLowerCase()
+    abstract fun scan(packages: List<Package>, outputDirectory: File, downloadDirectory: File? = null)
+            : Map<Package, Result>
 
-        // TODO: Consider implementing this logic in the Package class itself when creating the identifier.
-        // Also, think about what to use if we have neither a version nor a hash.
-        val pkgRevision = pkg.id.version.let { if (it.isBlank()) pkg.vcs.revision.take(7) else it }
-
-        val resultsFile = File(scanResultsDirectory,
-                "${pkg.id.name}-${pkgRevision}_$scannerName.$resultFileExtension")
-
-        if (ScanResultsCache.read(pkg, resultsFile)) {
-            return getResult(resultsFile)
-        }
-
-        val sourceDirectory = try {
-            Main.download(pkg, downloadDirectory ?: File(outputDirectory, "downloads"))
-        } catch (e: DownloadException) {
-            if (com.here.ort.utils.printStackTrace) {
-                e.printStackTrace()
-            }
-
-            throw ScanException("Package '${pkg.id}' could not be scanned.", e)
-        }
-
-        return scanPath(sourceDirectory, resultsFile).also { ScanResultsCache.write(pkg, resultsFile) }
-    }
-
-    /**
-     * Scan the provided [path] for license information, writing results to [outputDirectory]. Note that no caching will
-     * be used in this mode.
-     *
-     * @param path The directory or file to scan.
-     * @param outputDirectory The base directory to store scan results in.
-     *
-     * @return The set of found licenses.
-     *
-     * @throws ScanException In case the package could not be scanned.
-     */
-    fun scan(path: File, outputDirectory: File): Result {
-        val scanResultsDirectory = File(outputDirectory, "scanResults").apply { safeMkdirs() }
-        val scannerName = toString().toLowerCase()
-        val resultsFile = File(scanResultsDirectory,
-                "${path.nameWithoutExtension}_$scannerName.$resultFileExtension")
-
-        return scanPath(path, resultsFile)
-    }
-
-    /**
-     * A property containing the file name extension of the scanner's native output format, without the dot.
-     */
-    protected abstract val resultFileExtension: String
-
-    /**
-     * Scan the provided [path] for license information, writing results to [resultsFile].
-     */
-    protected abstract fun scanPath(path: File, resultsFile: File): Result
-
-    /**
-     * Convert the scanner's native file format to a [Result].
-     */
-    internal abstract fun getResult(resultsFile: File): Result
 }

@@ -20,9 +20,9 @@
 package com.here.ort.scanner.scanners
 
 import ch.frankel.slf4k.*
+import com.here.ort.scanner.LocalScanner
 
 import com.here.ort.scanner.ScanException
-import com.here.ort.scanner.Scanner
 import com.here.ort.utils.OS
 import com.here.ort.utils.ProcessCapture
 import com.here.ort.utils.yamlMapper
@@ -30,7 +30,7 @@ import com.here.ort.utils.log
 
 import java.io.File
 
-object Licensee : Scanner() {
+object Licensee : LocalScanner() {
     override val resultFileExtension = "yml"
 
     override fun scanPath(path: File, resultsFile: File): Result {
