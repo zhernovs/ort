@@ -19,6 +19,8 @@
 
 package com.here.ort.scanner
 
+import okhttp3.RequestBody
+import okhttp3.ResponseBody
 import retrofit2.Call
 import retrofit2.http.Body
 import retrofit2.http.GET
@@ -34,27 +36,11 @@ interface ClearlyDefinedService {
         @Path("namespace") namespace: String,
         @Path("name") name: String,
         @Path("revision") revision: String
-    ): Call<List<String>>
+    ): Call<ResponseBody>
 
     @POST("harvest")
-    fun harvestData(@Body components: List<Component>): Call<Boolean>
+    fun harvestData(@Body components: RequestBody): Call<ResponseBody>
 
     @POST("harvest/status")
-    fun harvestStatus(@Body components: List<Component>): Call<Map<String, ComponentStatus>>
+    fun harvestStatus(@Body components: RequestBody): Call<ResponseBody>
 }
-
-data class Component(
-    /**
-     * One of "package" or "source".
-     */
-    val type: String,
-
-    /**
-     * Url in the format "cd:/{type}/{provider}/{namespace}/{name}/{revision}". For example:
-     * * cd:/npm/npmjs/-/redie/0.3.0
-     * * cd:/git/github/microsoft/redie/194269b5b7010ad6f8dc4ef608c88128615031ca
-     */
-    val url: String
-)
-
-typealias ComponentStatus = Map<String, String>

@@ -39,6 +39,7 @@ import com.here.ort.utils.PARAMETER_ORDER_OPTIONAL
 import com.here.ort.utils.collectMessages
 import com.here.ort.utils.jsonMapper
 import com.here.ort.utils.log
+import com.here.ort.utils.safeMkdirs
 import com.here.ort.utils.yamlMapper
 
 import java.io.File
@@ -137,6 +138,16 @@ object Main {
             converter = OutputFormatConverter::class,
             order = PARAMETER_ORDER_OPTIONAL)
     private var summaryFormats = listOf(OutputFormat.YAML)
+
+    @Parameter(description = "The URL of the ClearlyDefined service.",
+        names = ["--cd-url"],
+        order = PARAMETER_ORDER_OPTIONAL)
+    var clearlyDefinedUrl: String? = null
+
+    @Parameter(description = "The GitHub token for the ClearlyDefined service.",
+        names = ["--cd-token"],
+        order = PARAMETER_ORDER_OPTIONAL)
+    var clearlyDefinedToken: String? = null
 
     @Parameter(description = "Enable info logging.",
             names = ["--info"],
@@ -310,6 +321,7 @@ object Main {
     }
 
     private fun writeSummary(outputDirectory: File, scanSummary: ScanSummary) {
+        outputDirectory.safeMkdirs()
         summaryFormats.forEach { format ->
             val summaryFile = File(outputDirectory, "scan-summary.${format.fileExtension}")
             val mapper = when (format) {
