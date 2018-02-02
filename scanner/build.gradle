@@ -10,4 +10,5 @@ dependencies {
     compile project(':utils')
 
     compile "com.beust:jcommander:$jcommanderVersion"
+    compile "com.squareup.retrofit2:retrofit:$retrofitVersion"
 }
