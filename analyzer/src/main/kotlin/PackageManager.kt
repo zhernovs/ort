@@ -71,7 +71,8 @@ abstract class PackageManager(protected val analyzerConfig: AnalyzerConfiguratio
                     PIP,
                     Bundler,
                     PhpComposer,
-                    Stack
+                    Stack,
+                    BitBake
             )
         }
 
