@@ -48,7 +48,7 @@ class Analyzer {
         val repositoryConfiguration = if (repositoryConfigurationFile.isFile) {
             repositoryConfigurationFile.readValue(RepositoryConfiguration::class.java)
         } else {
-            RepositoryConfiguration(null)
+            RepositoryConfiguration(null, null)
         }
 
         // Map of files managed by the respective package manager.

@@ -32,5 +32,12 @@ data class RepositoryConfiguration(
          * scanned, but related errors will be marked as resolved in the reporter output.
          */
         @JsonInclude(JsonInclude.Include.NON_NULL)
-        val excludes: Excludes?
+        val excludes: Excludes?,
+
+        /**
+         * Defines the recipes to analyzed for each directory which contains a BitBake definition file.
+         * The path is relative to the repository root and does not include the name of the definition file.
+         */
+        @JsonInclude(JsonInclude.Include.NON_NULL)
+        val bitbakeRecipes: Map<String, List<String>>?
 )

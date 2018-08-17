@@ -81,6 +81,7 @@ class RepositoryConfigurationTest : WordSpec() {
 
                 repositoryConfiguration shouldNotBe null
                 repositoryConfiguration.excludes shouldNotBe null
+                repositoryConfiguration.bitbakeRecipes shouldBe null
 
                 val projects = repositoryConfiguration.excludes!!.projects
                 projects should haveSize(2)
@@ -126,6 +127,35 @@ class RepositoryConfigurationTest : WordSpec() {
                 errors.first().message shouldBe "error message"
                 errors.first().reason shouldBe ExcludeReason.OTHER
                 errors.first().comment shouldBe "error comment"
+            }
+
+            "include bitbake recipes" {
+                val configuration = """
+                    bitbake_recipes:
+                      project1:
+                        - gdb
+                        - libpng
+                      project2:
+                        - boost
+                    """.trimIndent()
+
+                val repositoryConfiguration = yamlMapper.readValue(configuration, RepositoryConfiguration::class.java)
+
+                repositoryConfiguration shouldNotBe null
+                repositoryConfiguration.excludes shouldBe null
+                repositoryConfiguration.bitbakeRecipes shouldNotBe null
+
+                val recipes = repositoryConfiguration.bitbakeRecipes!!
+                recipes.keys should haveSize(2)
+
+                recipes.contains("project1") shouldBe true
+                recipes["project1"]!! should haveSize(2)
+                recipes["project1"]!![0] shouldBe "gdb"
+                recipes["project1"]!![1] shouldBe "libpng"
+
+                recipes.contains("project2") shouldBe true
+                recipes["project2"]!! should haveSize(1)
+                recipes["project2"]!![0] shouldBe "boost"
             }
         }
     }

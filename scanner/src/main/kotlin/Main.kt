@@ -306,7 +306,7 @@ object Main {
         val scannerRun = ScannerRun(Environment(), config, scanRecord)
 
         val vcs = VersionControlSystem.getCloneInfo(inputPath)
-        val repository = Repository(vcs, vcs.normalize(), RepositoryConfiguration(null))
+        val repository = Repository(vcs, vcs.normalize(), RepositoryConfiguration(null, null))
 
         return OrtResult(repository, scanner = scannerRun)
     }
