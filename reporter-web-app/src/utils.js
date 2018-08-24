@@ -85,11 +85,11 @@ export function convertToRenderFormat(reportData) {
 
         if (packageFromScanner) {
             errors = packageFromScanner.reduce((accumulator, scanResult) => {
-                if (!scanResult.errors) {
+                if (!scanResult.summary.errors) {
                     return accumulator;
                 }
 
-                return accumulator.concat(scanResult.errors);
+                return accumulator.concat(scanResult.summary.errors);
             }, []);
 
             errorsScanner = errors.map((error) => {

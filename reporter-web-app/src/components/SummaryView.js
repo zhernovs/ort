@@ -5,6 +5,8 @@ import {
 } from 'antd';
 import { LicenseChart } from './LicenseChart';
 import { UNIQUE_COLORS } from '../data/colors/index';
+import pako from 'pako';
+import base64js from 'base64-js'
 
 const COLORS = UNIQUE_COLORS.data;
 const TabPane = Tabs.TabPane;
@@ -166,6 +168,60 @@ class SummaryView extends React.Component {
                     }}
                     showHeader={false}
                 />);
+            const renderFixOnClearyDefined = (errors, errorsTotalOpen) => {
+                const errorsFixableByCD = errors.reduce((accumulator, error) => {
+                    if (error.message.includes('No source artifact URL provided')) {
+                        accumulator.push(error);
+                    }
+
+                    return accumulator;
+                }, []);
+                const nrErrorsFixableByCD = errorsFixableByCD.length;
+                if (nrErrorsFixableByCD !== 0) {
+                    const coordinates = errorsFixableByCD.reduce((accumulator, error) => {
+                            const packageId = error.package.id;
+                            const packageIdDecomposed = packageId.split(':');
+                            const coordinate = {
+                                type: packageIdDecomposed[0].toLowerCase(),
+                                provider: "mavencentral",
+                                namespace: packageIdDecomposed[1],
+                                name: packageIdDecomposed[2],
+                                revision: packageIdDecomposed[3],
+                                pr: null
+                            };
+                            accumulator.push(coordinate);
+
+                        return accumulator;
+                    }, []);
+                    
+                    const payload = {
+                        filter: {},
+                        sortBy: null,
+                        coordinates: coordinates
+                    }
+                    const url = `https://dev.clearlydefined.io/share/${base64js.fromByteArray(
+                          pako.deflate(JSON.stringify(payload))
+                        )}`;
+                    console.log('payload', payload);
+                    const alertText = (
+                        <span>You can{' '}
+                            <a
+                                href={url}
+                                rel="noopener noreferrer"
+                                target="_blank"
+                            >fix  {nrErrorsFixableByCD}</a> of {errorsTotalOpen} errors using ClearlyDefined
+                        </span>
+                    );
+
+                    return (
+                        <div style={{paddingTop: '10px'}}>
+                            <Alert message={alertText} type="info" showIcon />
+                        </div>
+                    );
+                }
+
+                return null;
+            };
 
             if (viewData.errors.totalOpen !== 0) {
                 return (
@@ -181,6 +237,7 @@ class SummaryView extends React.Component {
                             key="1"
                         >
                             {renderErrorTable(viewData.errors.open, viewData.errors.totalOpen)}
+                            {renderFixOnClearyDefined(viewData.errors.open, viewData.errors.totalOpen)}
                         </TabPane>
                         <TabPane
                             tab={(
