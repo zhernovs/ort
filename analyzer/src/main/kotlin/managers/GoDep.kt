@@ -36,7 +36,7 @@ import com.here.ort.model.Scope
 import com.here.ort.model.VcsInfo
 import com.here.ort.model.config.AnalyzerConfiguration
 import com.here.ort.model.config.RepositoryConfiguration
-import com.here.ort.utils.CommandLineTool
+import com.here.ort.utils.CommandLineTool2
 import com.here.ort.utils.ProcessCapture
 import com.here.ort.utils.collectMessagesAsString
 import com.here.ort.utils.log
@@ -44,6 +44,8 @@ import com.here.ort.utils.safeDeleteRecursively
 import com.here.ort.utils.showStackTrace
 
 import com.moandjiezana.toml.Toml
+
+import com.vdurmont.semver4j.Semver
 
 import java.io.File
 import java.io.IOException
@@ -59,7 +61,7 @@ val GO_LEGACY_MANIFESTS = mapOf(
  * The Dep package manager for Go, see https://golang.github.io/dep/.
  */
 class GoDep(analyzerConfig: AnalyzerConfiguration, repoConfig: RepositoryConfiguration) :
-        PackageManager(analyzerConfig, repoConfig), CommandLineTool {
+        PackageManager(analyzerConfig, repoConfig) {
     class Factory : AbstractPackageManagerFactory<GoDep>() {
         override val globsForDefinitionFiles = listOf("Gopkg.toml", *GO_LEGACY_MANIFESTS.keys.toTypedArray())
 
@@ -67,7 +69,22 @@ class GoDep(analyzerConfig: AnalyzerConfiguration, repoConfig: RepositoryConfigu
                 GoDep(analyzerConfig, repoConfig)
     }
 
-    override fun command(workingDir: File?) = "dep"
+    private val dep = object : CommandLineTool2("GoDep") {
+        override val executable = "dep"
+        override val preferredVersion = Semver("0.5.0")
+        override val versionArguments = listOf("version")
+
+        override fun transformVersion(output: String) =
+                // dep:
+                //  version     : v0.5.0
+                output.lines().mapNotNull { line ->
+                    val keyAndValue = line.split(':').map { it.trim() }
+                    keyAndValue.lastOrNull().takeIf { keyAndValue.firstOrNull() == "version" }
+                }.joinToString("").removePrefix("v")
+    }
+
+    override fun prepareResolution(definitionFiles: List<File>) =
+            dep.checkVersion(ignoreActualVersion = analyzerConfig.ignoreToolVersions)
 
     override fun resolveDependencies(definitionFile: File): ProjectAnalyzerResult? {
         val projectDir = resolveProjectRoot(definitionFile)
@@ -168,7 +185,7 @@ class GoDep(analyzerConfig: AnalyzerConfiguration, repoConfig: RepositoryConfigu
 
         log.debug { "Running 'dep init' to import legacy manifest file ${definitionFile.name}" }
 
-        run("init", workingDir = workingDir, environment = mapOf("GOPATH" to gopath.absolutePath))
+        dep.run("init", workingDir = workingDir, environment = mapOf("GOPATH" to gopath.absolutePath)).requireSuccess()
     }
 
     private fun setUpWorkspace(projectDir: File, vcs: VcsInfo, gopath: File): File {
@@ -198,7 +215,7 @@ class GoDep(analyzerConfig: AnalyzerConfiguration, repoConfig: RepositoryConfigu
 
             log.debug { "Running 'dep ensure' to generate missing lockfile in $workingDir" }
 
-            run("ensure", workingDir = workingDir, environment = mapOf("GOPATH" to gopath.absolutePath))
+            dep.run("ensure", workingDir = workingDir, environment = mapOf("GOPATH" to gopath.absolutePath)).requireSuccess()
         }
 
         val entries = Toml().read(lockfile).toMap()["projects"]

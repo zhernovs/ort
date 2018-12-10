@@ -23,9 +23,11 @@ import com.here.ort.analyzer.AbstractPackageManagerFactory
 import com.here.ort.analyzer.PackageJsonUtils
 import com.here.ort.model.config.AnalyzerConfiguration
 import com.here.ort.model.config.RepositoryConfiguration
+import com.here.ort.utils.CommandLineTool2
 import com.here.ort.utils.OS
 
 import com.vdurmont.semver4j.Requirement
+import com.vdurmont.semver4j.Semver
 
 import java.io.File
 
@@ -41,17 +43,14 @@ class Yarn(analyzerConfig: AnalyzerConfiguration, repoConfig: RepositoryConfigur
                 Yarn(analyzerConfig, repoConfig)
     }
 
+    override val manager = object : CommandLineTool2("Yarn") {
+        override val executable = if (OS.isWindows) "yarn.cmd" else "yarn"
+        override val preferredVersion = Semver("1.12.1")
+        override val requiredVersion = Requirement.buildNPM("1.3.* - 1.12.*")
+    }
+
     override fun hasLockFile(projectDir: File) = PackageJsonUtils.hasYarnLockFile(projectDir)
-
-    override fun command(workingDir: File?) = if (OS.isWindows) "yarn.cmd" else "yarn"
-
-    override fun getVersionRequirement(): Requirement = Requirement.buildNPM("1.3.* - 1.12.*")
 
     override fun mapDefinitionFiles(definitionFiles: List<File>) =
             PackageJsonUtils.mapDefinitionFilesForYarn(definitionFiles).toList()
-
-    override fun prepareResolution(definitionFiles: List<File>) =
-            // We do not actually depend on any features specific to a Yarn version, but we still want to stick to a
-            // fixed minor version to be sure to get consistent results.
-            checkVersion(ignoreActualVersion = analyzerConfig.ignoreToolVersions)
 }

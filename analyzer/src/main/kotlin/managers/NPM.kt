@@ -43,7 +43,7 @@ import com.here.ort.model.config.AnalyzerConfiguration
 import com.here.ort.model.config.RepositoryConfiguration
 import com.here.ort.model.jsonMapper
 import com.here.ort.model.readValue
-import com.here.ort.utils.CommandLineTool
+import com.here.ort.utils.CommandLineTool2
 import com.here.ort.utils.OS
 import com.here.ort.utils.OkHttpClientHelper
 import com.here.ort.utils.hasFragmentRevision
@@ -54,6 +54,7 @@ import com.here.ort.utils.textValueOrEmpty
 import com.here.ort.utils.toHexString
 
 import com.vdurmont.semver4j.Requirement
+import com.vdurmont.semver4j.Semver
 
 import java.io.File
 import java.io.IOException
@@ -70,7 +71,7 @@ import okhttp3.Request
  * The Node package manager for JavaScript, see https://www.npmjs.com/.
  */
 open class NPM(analyzerConfig: AnalyzerConfiguration, repoConfig: RepositoryConfiguration) :
-        PackageManager(analyzerConfig, repoConfig), CommandLineTool {
+        PackageManager(analyzerConfig, repoConfig) {
     companion object {
         /**
          * Expand NPM shortcuts for URLs to hosting sites to full URLs so that they can be used in a regular way.
@@ -119,19 +120,19 @@ open class NPM(analyzerConfig: AnalyzerConfiguration, repoConfig: RepositoryConf
                 NPM(analyzerConfig, repoConfig)
     }
 
+    protected open val manager = object : CommandLineTool2("NPM") {
+        override val executable = if (OS.isWindows) "npm.cmd" else "npm"
+        override val preferredVersion = Semver("6.4.0")
+        override val requiredVersion = Requirement.buildNPM("5.5.* - 6.4.*")
+    }
+
     protected open fun hasLockFile(projectDir: File) = PackageJsonUtils.hasNpmLockFile(projectDir)
-
-    override fun command(workingDir: File?) = if (OS.isWindows) "npm.cmd" else "npm"
-
-    override fun getVersionRequirement(): Requirement = Requirement.buildNPM("5.5.* - 6.4.*")
 
     override fun mapDefinitionFiles(definitionFiles: List<File>) =
             PackageJsonUtils.mapDefinitionFilesForNpm(definitionFiles).toList()
 
     override fun prepareResolution(definitionFiles: List<File>) =
-            // We do not actually depend on any features specific to an NPM version, but we still want to stick to a
-            // fixed minor version to be sure to get consistent results.
-            checkVersion(ignoreActualVersion = analyzerConfig.ignoreToolVersions)
+            manager.checkVersion(ignoreActualVersion = analyzerConfig.ignoreToolVersions)
 
     override fun resolveDependencies(definitionFile: File): ProjectAnalyzerResult? {
         val workingDir = definitionFile.parentFile
@@ -502,7 +503,7 @@ open class NPM(analyzerConfig: AnalyzerConfiguration, repoConfig: RepositoryConf
         }
 
         // Install all NPM dependencies to enable NPM to list dependencies.
-        run(workingDir, "install", "--ignore-scripts")
+        manager.run(workingDir, "install", "--ignore-scripts").requireSuccess()
 
         // TODO: capture warnings from npm output, e.g. "Unsupported platform" which happens for fsevents on all
         // platforms except for Mac.

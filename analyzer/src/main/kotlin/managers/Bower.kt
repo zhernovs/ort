@@ -37,7 +37,7 @@ import com.here.ort.model.VcsInfo
 import com.here.ort.model.config.AnalyzerConfiguration
 import com.here.ort.model.config.RepositoryConfiguration
 import com.here.ort.model.jsonMapper
-import com.here.ort.utils.CommandLineTool
+import com.here.ort.utils.CommandLineTool2
 import com.here.ort.utils.OS
 import com.here.ort.utils.fieldNamesOrEmpty
 import com.here.ort.utils.fieldsOrEmpty
@@ -45,7 +45,7 @@ import com.here.ort.utils.log
 import com.here.ort.utils.stashDirectories
 import com.here.ort.utils.textValueOrEmpty
 
-import com.vdurmont.semver4j.Requirement
+import com.vdurmont.semver4j.Semver
 
 import java.io.File
 import java.util.SortedSet
@@ -55,11 +55,10 @@ import java.util.Stack
  * The Bower package manager for JavaScript, see https://bower.io/.
  */
 class Bower(analyzerConfig: AnalyzerConfiguration, repoConfig: RepositoryConfiguration) :
-        PackageManager(analyzerConfig, repoConfig), CommandLineTool {
+        PackageManager(analyzerConfig, repoConfig) {
     companion object {
         // We do not actually depend on any features specific to this Bower version, but we still want to
         // stick to fixed versions to be sure to get consistent results.
-        private const val REQUIRED_BOWER_VERSION = "1.8.4"
         private const val SCOPE_NAME_DEPENDENCIES = "dependencies"
         private const val SCOPE_NAME_DEV_DEPENDENCIES = "devDependencies"
 
@@ -205,12 +204,13 @@ class Bower(analyzerConfig: AnalyzerConfiguration, repoConfig: RepositoryConfigu
                 Bower(analyzerConfig, repoConfig)
     }
 
-    override fun command(workingDir: File?) = if (OS.isWindows) "bower.cmd" else "bower"
-
-    override fun getVersionRequirement(): Requirement = Requirement.buildStrict(REQUIRED_BOWER_VERSION)
+    private val bower = object : CommandLineTool2("Bower") {
+        override val executable = if (OS.isWindows) "bower.cmd" else "bower"
+        override val preferredVersion = Semver("1.8.4")
+    }
 
     override fun prepareResolution(definitionFiles: List<File>) =
-            checkVersion(ignoreActualVersion = analyzerConfig.ignoreToolVersions)
+            bower.checkVersion(ignoreActualVersion = analyzerConfig.ignoreToolVersions)
 
     override fun resolveDependencies(definitionFile: File): ProjectAnalyzerResult? {
         log.info { "Resolving dependencies for: '${definitionFile.absolutePath}'" }
@@ -218,8 +218,9 @@ class Bower(analyzerConfig: AnalyzerConfiguration, repoConfig: RepositoryConfigu
         val workingDir = definitionFile.parentFile
 
         stashDirectories(File(workingDir, "bower_components")).use {
-            installDependencies(workingDir)
-            val dependenciesJson = listDependencies(workingDir)
+            bower.run(workingDir, "install").requireSuccess()
+
+            val dependenciesJson = bower.run(workingDir, "list", "--json").requireSuccess().stdout
             val rootNode = jsonMapper.readTree(dependenciesJson)
             val packages = extractPackages(rootNode)
             val dependenciesScope = Scope(
@@ -247,13 +248,5 @@ class Bower(analyzerConfig: AnalyzerConfiguration, repoConfig: RepositoryConfigu
                     packages = packages.map { it.value.toCuratedPackage() }.toSortedSet()
             )
         }
-    }
-
-    private fun installDependencies(workingDir: File) {
-        run(workingDir, "install")
-    }
-
-    private fun listDependencies(workingDir: File): String {
-        return run(workingDir, "list", "--json").stdout
     }
 }

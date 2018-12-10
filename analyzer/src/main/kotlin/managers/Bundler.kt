@@ -41,7 +41,7 @@ import com.here.ort.model.config.AnalyzerConfiguration
 import com.here.ort.model.config.RepositoryConfiguration
 import com.here.ort.model.jsonMapper
 import com.here.ort.model.yamlMapper
-import com.here.ort.utils.CommandLineTool
+import com.here.ort.utils.CommandLineTool2
 import com.here.ort.utils.OS
 import com.here.ort.utils.OkHttpClientHelper
 import com.here.ort.utils.collectMessagesAsString
@@ -51,6 +51,7 @@ import com.here.ort.utils.stashDirectories
 import com.here.ort.utils.textValueOrEmpty
 
 import com.vdurmont.semver4j.Requirement
+import com.vdurmont.semver4j.Semver
 
 import java.io.File
 import java.io.IOException
@@ -64,7 +65,7 @@ import okhttp3.Request
  * http://yehudakatz.com/2010/12/16/clarifying-the-roles-of-the-gemspec-and-gemfile/.
  */
 class Bundler(analyzerConfig: AnalyzerConfiguration, repoConfig: RepositoryConfiguration) :
-        PackageManager(analyzerConfig, repoConfig), CommandLineTool {
+        PackageManager(analyzerConfig, repoConfig) {
     class Factory : AbstractPackageManagerFactory<Bundler>() {
         override val globsForDefinitionFiles = listOf("Gemfile")
 
@@ -72,17 +73,18 @@ class Bundler(analyzerConfig: AnalyzerConfiguration, repoConfig: RepositoryConfi
                 Bundler(analyzerConfig, repoConfig)
     }
 
-    override fun command(workingDir: File?) = if (OS.isWindows) "bundle.bat" else "bundle"
+    private val bundler = object : CommandLineTool2("Bundler") {
+        override val executable = if (OS.isWindows) "bundle.bat" else "bundle"
+        override val preferredVersion = Semver("1.17.1")
+        override val requiredVersion = Requirement.buildIvy("[1.16,1.18[")
 
-    override fun getVersionRequirement(): Requirement = Requirement.buildIvy("[1.16,1.18[")
+        override fun transformVersion(output: String) =
+                // Bundler version 1.16.1
+                output.substringAfter("Bundler version ")
+    }
 
     override fun prepareResolution(definitionFiles: List<File>) =
-            // We do not actually depend on any features specific to a version of Bundler, but we still want to stick to
-            // fixed versions to be sure to get consistent results.
-            checkVersion(
-                    ignoreActualVersion = analyzerConfig.ignoreToolVersions,
-                    transform = { it.substringAfter("Bundler version ") }
-            )
+            bundler.checkVersion(ignoreActualVersion = analyzerConfig.ignoreToolVersions)
 
     override fun resolveDependencies(definitionFile: File): ProjectAnalyzerResult? {
         val workingDir = definitionFile.parentFile
@@ -183,7 +185,7 @@ class Bundler(analyzerConfig: AnalyzerConfiguration, repoConfig: RepositoryConfi
         scriptFile.writeBytes(javaClass.classLoader.getResource("bundler_dependencies.rb").readBytes())
 
         try {
-            val scriptCmd = run(workingDir, "exec", "ruby", scriptFile.absolutePath)
+            val scriptCmd = bundler.run(workingDir, "exec", "ruby", scriptFile.absolutePath).requireSuccess()
             return jsonMapper.readValue(scriptCmd.stdout)
         } finally {
             if (!scriptFile.delete()) {
@@ -203,7 +205,7 @@ class Bundler(analyzerConfig: AnalyzerConfiguration, repoConfig: RepositoryConfi
     }
 
     private fun getGemspec(gemName: String, workingDir: File): GemSpec {
-        val spec = run(workingDir, "exec", "gem", "specification", gemName).stdout
+        val spec = bundler.run(workingDir, "exec", "gem", "specification", gemName).requireSuccess().stdout
 
         return GemSpec.createFromYaml(spec)
     }
@@ -216,7 +218,7 @@ class Bundler(analyzerConfig: AnalyzerConfiguration, repoConfig: RepositoryConfi
             "No lockfile found in ${workingDir.invariantSeparatorsPath}, dependency versions are unstable."
         }
 
-        run(workingDir, "install", "--path", "vendor/bundle")
+        bundler.run(workingDir, "install", "--path", "vendor/bundle").requireSuccess()
     }
 
     private fun queryRubygems(name: String, version: String): GemSpec? {
