@@ -1,7 +1,11 @@
 plugins {
     // Apply core plugins.
     id 'java-library'
+    id 'application'
 }
+
+applicationName = 'cache-cleanup'
+mainClassName = 'com.here.ort.scanner.CacheCleanupKt'
 
 dependencies {
     api project(':model')

@@ -30,6 +30,7 @@ import com.here.ort.model.jsonMapper
 import com.here.ort.model.readValue
 import com.here.ort.model.yamlMapper
 import com.here.ort.utils.OkHttpClientHelper
+import com.here.ort.utils.getPathFromEnvironment
 import com.here.ort.utils.log
 import com.here.ort.utils.showStackTrace
 
@@ -199,7 +200,7 @@ class ArtifactoryCache(
         }
     }
 
-    override fun listPackages(): SortedSet<Identifier> {
+    fun listFiles(): SortedSet<String> {
         val aqlQuery = """
             items.find({
                 "type": "file",
@@ -223,14 +224,21 @@ class ArtifactoryCache(
                     val json = jsonMapper.readTree(responseBody.charStream())
 
                     return json["results"].map { node ->
-                        val elements = node["path"].textValue().split("/")
-                        Identifier("${elements[1]}:${elements[2]}:${elements[3]}:${elements[4]}")
+                        "${node["path"].textValue().substringAfter("/")}/${node["name"].textValue()}"
                     }.toSortedSet()
                 } ?: throw IOException("Could not fetch package list: Response body is null.")
             } else {
                 throw IOException("Could not fetch package list: ${response.code()} - ${response.message()}")
             }
         }
+    }
+
+    override fun listPackages(): SortedSet<Identifier> {
+        val files = listFiles()
+        return files.map { file ->
+            val elements = file.split("/")
+            Identifier("${elements[0]}:${elements[1]}:${elements[2]}:${elements[3]}")
+        }.toSortedSet()
     }
 
     private fun cachePath(id: Identifier) = "scan-results/${id.toPath()}/scan-results.yml"
