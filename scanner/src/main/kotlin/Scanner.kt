@@ -101,7 +101,13 @@ abstract class Scanner(val scannerName: String, protected val config: ScannerCon
         val consolidatedProjects = consolidateProjectPackagesByVcs(ortResult.getProjects(skipExcluded))
         val consolidatedReferencePackages = consolidatedProjects.keys.map { it.toCuratedPackage() }
 
-        val packagesToScan = (consolidatedReferencePackages + ortResult.getPackages(skipExcluded)).map { it.pkg }
+        val consolidatedPackages = (consolidatedReferencePackages + ortResult.getPackages(skipExcluded)).map { it.pkg }
+
+        // As a concluded license trumps all, do not even bother to scan packages with a concluded license.
+        val packagesToScan = consolidatedPackages.mapNotNull { curatedPkg ->
+            curatedPkg.takeUnless { it.concludedLicense != null }
+        }
+
         val results = runBlocking { scanPackages(packagesToScan, outputDirectory, downloadDirectory) }
         val resultContainers = results.map { (pkg, results) ->
             ScanResultContainer(pkg.id, results)
