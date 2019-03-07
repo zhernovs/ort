@@ -257,8 +257,10 @@ function* convertReportData() {
     // from Analyzer and Scanner to a package
     const addLicensesToPackage = (projectIndex, pkgObj) => {
         const pkg = pkgObj;
+        const detectedLicenses = new Set([]);
         const packageFromAnalyzer = packagesFromAnalyzer[pkg.id] || false;
         const packageFromScanner = packagesFromScanner[pkg.id] || false;
+        const scanners = new Set([]);
 
         if (pkg.id === projects[projectIndex].id) {
             // If package is a project then declared licenses
@@ -285,19 +287,26 @@ function* convertReportData() {
         );
 
         if (packageFromScanner) {
-            pkg.results = packageFromScanner;
+            pkg.scan_results = packageFromScanner
+                .reduce((accumulator, scanResult) => {
+                    const { scanner, summary } = scanResult;
+                    const { license_findings: findings } = summary;
 
-            pkg.license_findings = packageFromScanner
-                .reduce((accumulator, scanResult) => accumulator.concat(scanResult.summary.license_findings), []);
+                    scanners.add(`${scanner.name} ${scanner.version}`);
 
-            // Merge scan results from different scanners into array of license names
-            pkg.detected_licenses = pkgObj.license_findings.reduce((accumulator, finding) => {
-                accumulator.push(finding.license);
-                return accumulator;
-            }, []);
+                    for (let i = findings.length - 1; i >= 0; i -= 1) {
+                        detectedLicenses.add(findings[i].license);
+                        accumulator.unshift({
+                            ...findings[i],
+                            scanner: { ...scanner }
+                        });
+                    }
 
-            // Remove duplicate license names after merging
-            pkg.detected_licenses = removeDuplicatesInArray(pkgObj.detected_licenses);
+                    return accumulator;
+                }, []);
+
+            pkg.scanners = Array.from(scanners);
+            pkg.detected_licenses = Array.from(detectedLicenses).sort();
 
             addPackageLicensesToProject(
                 projectIndex,
@@ -312,9 +321,9 @@ function* convertReportData() {
                 pkgObj.detected_licenses
             );
         } else {
-            pkg.results = [];
-            pkg.license_findings = [];
             pkg.detected_licenses = [];
+            pkg.scan_results = [];
+            pkg.scanners = [];
             console.error(`Package ${pkg.id} was detected by Analyzer but not scanned`); // eslint-disable-line
         }
 

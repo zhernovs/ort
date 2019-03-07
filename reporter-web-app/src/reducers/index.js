@@ -211,7 +211,7 @@ export default (state = initState, action) => {
             ...state,
             app: {
                 ...state.app,
-                showKey: 'ort-tabs-summary'
+                showKey: 'ort-tabs-table' // showKey: 'ort-tabs-summary'
             },
             summary: {
                 ...state.summary,

@@ -28,7 +28,7 @@ import PackageDetails from './PackageDetails';
 import PackageErrors from './PackageErrors';
 import PackageLicenses from './PackageLicenses';
 import PackagePaths from './PackagePaths';
-import PackageScansSummary from './PackageScansSummary';
+import PackageScanResults from './PackageScanResults';
 import {
     getSingleTree,
     getSingleTreeNodes,
@@ -177,7 +177,7 @@ class TreeView extends React.Component {
                     <PackageErrors data={selectedPackage} show />
                     <PackageLicenses data={selectedPackage} show />
                     <PackagePaths data={selectedPackage} show />
-                    <PackageScansSummary data={selectedPackage} show={false} />
+                    <PackageScanResults data={selectedPackage} show={false} />
                 </div>
             </Drawer>
         );

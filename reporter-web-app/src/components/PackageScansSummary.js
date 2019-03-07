@@ -26,7 +26,7 @@ import ExpandablePanelTitle from './ExpandablePanelTitle';
 
 const { TabPane } = Tabs;
 
-// Generates the HTML to display scan results for a package
+// Generates the HTML to display a summary of the scan results for a package
 const PackageScansSummary = (props) => {
     const { data, show } = props;
     const pkgObj = data;

@@ -2,7 +2,9 @@ import React from 'react';
 import { connect } from 'react-redux';
 import {
     Button,
+    Col,
     Icon,
+    Row,
     Table,
     Tag,
     Tooltip
@@ -18,7 +20,7 @@ import LicenseTag from './LicenseTag';
 import PackageDetails from './PackageDetails';
 import PackageErrors from './PackageErrors';
 import PackagePaths from './PackagePaths';
-import PackageScansSummary from './PackageScansSummary';
+import PackageScanResults from './PackageScanResults';
 
 class TableView extends React.Component {
     shouldComponentUpdate() {
@@ -132,7 +134,7 @@ class TableView extends React.Component {
                 filteredValue: filteredInfo.declared_licenses || null,
                 filterMultiple: true,
                 key: 'declared_licenses',
-                onFilter: (value, record) => record.declared_licenses.includes(value),
+                onFilter: (value, component) => component.declared_licenses.includes(value),
                 title: 'Declared Licenses',
                 render: (text, row) => (
                     <ul className="ort-table-list">
@@ -231,12 +233,14 @@ class TableView extends React.Component {
                         }
 
                         return (
-                            <div>
-                                <PackageDetails data={record} show={false} />
-                                <PackagePaths data={record} show={false} />
-                                <PackageErrors data={record} show />
-                                <PackageScansSummary data={record} show={false} />
-                            </div>
+                            <Row>
+                                <Col xs={2} sm={9} md={11} lg={16} xl={18}>
+                                    <PackageDetails data={record} show={false} />
+                                    <PackagePaths data={record} show={false} />
+                                    <PackageErrors data={record} show />
+                                    <PackageScanResults data={record} show={false} />
+                                </Col>
+                            </Row>
                         );
                     }}
                     dataSource={data}
