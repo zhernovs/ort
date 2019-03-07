@@ -17,9 +17,127 @@
  * License-Filename: LICENSE
  */
 
-import { delay, put, select } from 'redux-saga/effects';
+import {
+    call, delay, put, select
+} from 'redux-saga/effects';
 import { getReportData } from '../reducers/selectors';
-import { hashCode, removeDuplicatesInArray } from '../utils';
+import { hashCode } from '../utils';
+
+// Transform Analyer results to be indexed by package Id for faster lookups
+function* convertReportAnalyzerPackagesData(packagesFromAnalyzer) {
+    const tmp = {};
+
+    for (let i = packagesFromAnalyzer.length - 1; i >= 0; i -= 1) {
+        const { curations, package: pkgObj } = packagesFromAnalyzer[i];
+
+        tmp[pkgObj.id] = {
+            ...pkgObj,
+            curations
+        };
+
+        yield delay(0);
+    }
+
+    return tmp;
+}
+
+// Transform Scanner results to be indexed by package Id for faster lookups
+function* convertReportScannerPackagesData(packagesFromScanner) {
+    const tmp = {};
+
+    for (let i = packagesFromScanner.length - 1; i >= 0; i -= 1) {
+        let num = 0;
+        const detectedLicenses = new Set([]);
+        const fileMatches = [];
+        const scanners = new Set([]);
+        const { id, results } = packagesFromScanner[i];
+        const scanSummary = results.reduce((accumulator, scanResult) => {
+            const { scanner, summary } = scanResult;
+            const { license_findings: findings } = summary;
+
+            scanners.add(`${scanner.name} ${scanner.version}`);
+
+            for (let j = findings.length - 1; j >= 0; j -= 1) {
+                detectedLicenses.add(findings[j].license);
+                accumulator.unshift({
+                    ...findings[j],
+                    scanner: { ...scanner }
+                });
+            }
+
+            return accumulator;
+        }, []);
+
+        for (let k = results.length - 1; k >= 0; k -= 1) {
+            const { scanner, summary } = results[k];
+            const { license_findings: findings } = summary;
+
+            for (let l = findings.length - 1; l >= 0; l -= 1) {
+                const {
+                    license,
+                    locations: licenseLocations,
+                    copyrights
+                } = findings[l];
+
+                num += licenseLocations.length;
+
+                if (copyrights[0] && copyrights[0].locations) {
+                    num += copyrights[0].locations.length;
+                    console.log('l ', l, id, license, licenseLocations.length, copyrights[0].locations.length, scanner);
+                } else {
+                    console.log('lll ', l, id, license, licenseLocations.length, scanner);
+                }
+
+                // /*
+                for (let m = licenseLocations.length - 1; m >= 0; m -= 1) {
+                    /*
+                    fileMatches.unshift({
+                        license,
+                        ...licenseLocations[m],
+                        scanner: { ...scanner },
+                        type: 'license'
+                    });
+                    */
+                    console.log('m ', m);
+                    yield delay(5);
+                }
+
+                /*
+                for (let n = copyrights.length - 1; n >= 0; n -= 1) {
+                    const { locations: copyrightLocations, statement } = copyrights[n];
+                    for (let o = copyrightLocations.length - 1; o >= 0; o -= 1) {
+                        fileMatches.push({
+                            license,
+                            ...copyrightLocations[o],
+                            scanner: { ...scanner },
+                            statement,
+                            type: 'copyright'
+                        });
+                    }
+
+                    console.log('n ', n);
+                }
+                */
+            }
+
+            yield delay(10);
+        }
+
+        console.log('num ', num);
+
+        tmp[id] = {
+            detected_licenses: Array.from(detectedLicenses).sort(),
+            scanners: Array.from(scanners),
+            scan_results: results,
+            scan_file_macthes: fileMatches,
+            scan_summary: Array.from(scanSummary)
+        };
+
+        yield delay(0);
+    }
+
+    return tmp;
+}
 
 function* convertReportData() {
     const reportData = yield select(getReportData);
@@ -47,29 +165,17 @@ function* convertReportData() {
         tmp.key = index;
         return tmp;
     });
-    // Transform Analyer results to be indexed by package Id for faster lookups
-    const packagesFromAnalyzer = ((dataArr) => {
-        const tmp = {};
 
-        for (let i = dataArr.length - 1; i >= 0; i -= 1) {
-            tmp[dataArr[i].package.id] = {
-                ...dataArr[i].package,
-                curations: dataArr[i].curations
-            };
-        }
+    const packagesFromAnalyzer = yield call(
+        convertReportAnalyzerPackagesData,
+        reportData.analyzer.result.packages || []
+    );
 
-        return tmp;
-    })(reportData.analyzer.result.packages || []);
-        // Transform Scanner results to be indexed by package Id for faster lookups
-    const packagesFromScanner = ((dataArr) => {
-        const tmp = {};
+    const packagesFromScanner = yield call(
+        convertReportScannerPackagesData,
+        reportData.scanner.results.scan_results || []
+    );
 
-        for (let i = dataArr.length - 1; i >= 0; i -= 1) {
-            tmp[dataArr[i].id] = dataArr[i].results;
-        }
-
-        return tmp;
-    })(reportData.scanner.results.scan_results || []);
     const packageErrorsFromAnalyzer = reportData.analyzer.result.errors;
     const projectsFromAnalyzer = reportData.analyzer.result.projects;
     const addErrorsToReportDataReportData = (pkgObj) => {
@@ -159,7 +265,7 @@ function* convertReportData() {
         }
 
         if (packageFromScanner) {
-            errors = packageFromScanner.reduce((accumulator, scanResult) => {
+            errors = packageFromScanner.scan_results.reduce((accumulator, scanResult) => {
                 if (!scanResult.summary.errors) {
                     return accumulator;
                 }
@@ -255,12 +361,10 @@ function* convertReportData() {
     };
     // Helper function to add license results
     // from Analyzer and Scanner to a package
-    const addLicensesToPackage = (projectIndex, pkgObj) => {
+    const addLicensesToPackage = function (projectIndex, pkgObj) {
         const pkg = pkgObj;
-        const detectedLicenses = new Set([]);
         const packageFromAnalyzer = packagesFromAnalyzer[pkg.id] || false;
         const packageFromScanner = packagesFromScanner[pkg.id] || false;
-        const scanners = new Set([]);
 
         if (pkg.id === projects[projectIndex].id) {
             // If package is a project then declared licenses
@@ -287,43 +391,23 @@ function* convertReportData() {
         );
 
         if (packageFromScanner) {
-            pkg.scan_results = packageFromScanner
-                .reduce((accumulator, scanResult) => {
-                    const { scanner, summary } = scanResult;
-                    const { license_findings: findings } = summary;
-
-                    scanners.add(`${scanner.name} ${scanner.version}`);
-
-                    for (let i = findings.length - 1; i >= 0; i -= 1) {
-                        detectedLicenses.add(findings[i].license);
-                        accumulator.unshift({
-                            ...findings[i],
-                            scanner: { ...scanner }
-                        });
-                    }
-
-                    return accumulator;
-                }, []);
-
-            pkg.scanners = Array.from(scanners);
-            pkg.detected_licenses = Array.from(detectedLicenses).sort();
+            pkg.detected_licenses = packageFromScanner.detected_licenses;
+            pkg.scan_summary = packageFromScanner.scan_summary;
+            pkg.scanners = packageFromScanner.scanners;
 
             addPackageLicensesToProject(
                 projectIndex,
                 'detected',
-                pkgObj.detected_licenses
+                pkg.detected_licenses
             );
 
             addPackageLicensesToReportData(
                 detectedLicensesFromScanner,
                 projectIndex,
-                pkgObj,
-                pkgObj.detected_licenses
+                pkg,
+                pkg.detected_licenses
             );
         } else {
-            pkg.detected_licenses = [];
-            pkg.scan_results = [];
-            pkg.scanners = [];
             console.error(`Package ${pkg.id} was detected by Analyzer but not scanned`); // eslint-disable-line
         }
 
@@ -491,6 +575,7 @@ function* convertReportData() {
         const projectFromScanner = packagesFromScanner[projectId] || false;
 
         if (projectId && projectFromScanner) {
+            /*
             proj.results = projectFromScanner;
 
             proj.packages.licenses.findings = projectFromScanner.reduce(
@@ -500,9 +585,11 @@ function* convertReportData() {
                 []
             );
 
+
             proj.packages.licenses.detected = removeDuplicatesInArray(
                 proj.packages.licenses.findings.map(finding => finding.license)
             );
+            */
         }
 
         return proj;

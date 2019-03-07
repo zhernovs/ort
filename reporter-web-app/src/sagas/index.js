@@ -19,6 +19,7 @@
 
 import { all, put, takeEvery } from 'redux-saga/effects';
 import convertReportData from './convertReportData';
+import convertScanResultsData from './convertScanResultsData';
 
 export function* loadReportData() {
     yield put({ type: 'APP::SHOW_LOADING' });
@@ -41,6 +42,10 @@ export function* watchConvertReportData() {
     yield takeEvery('APP::LOADING_CONVERTING_REPORT_START', convertReportData);
 }
 
+export function* watchConvertScanResultsData() {
+    yield takeEvery('PKG::CONVERTING_SCAN_RESULTS_START', convertScanResultsData);
+}
+
 export function* watchLoadReportData() {
     yield takeEvery('APP::LOADING_START', loadReportData);
 }
@@ -49,6 +54,7 @@ export function* watchLoadReportData() {
 export default function* rootSaga() {
     yield all([
         watchLoadReportData(),
-        watchConvertReportData()
+        watchConvertReportData(),
+        watchConvertScanResultsData()
     ]);
 }

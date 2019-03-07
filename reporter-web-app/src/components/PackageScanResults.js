@@ -23,6 +23,7 @@ import PropTypes from 'prop-types';
 import ExpandablePanel from './ExpandablePanel';
 import ExpandablePanelContent from './ExpandablePanelContent';
 import ExpandablePanelTitle from './ExpandablePanelTitle';
+import store from '../store';
 
 const { TabPane } = Tabs;
 
@@ -30,7 +31,7 @@ const { TabPane } = Tabs;
 const PackageScanResults = (props) => {
     const { data, show } = props;
     const pkgObj = data;
-    console.log('show', show);
+    console.log('PackageScanResults props', props, show);
     const show2 = true;
 
     // Do not render anything if no scan results
@@ -40,14 +41,38 @@ const PackageScanResults = (props) => {
 
     console.log('pkg', pkgObj);
 
+    const renderRawScanResultsTable = () => {
+        console.log('rr');
+
+        return (
+            <span>
+                renderRawScanResultsTable
+            </span>
+        );
+    };
+
     return (
         <ExpandablePanel key="ort-package-scan-results" show={show2}>
             <ExpandablePanelTitle titleElem="h4">Package Scan Results</ExpandablePanelTitle>
             <ExpandablePanelContent>
-                <Tabs tabPosition="top">
+                <Tabs
+                    onChange={
+                        () => {
+                            console.log('ort-package-scan-results switch', pkgObj);
+                            if (pkgObj.scan_results && pkgObj.scan_results.length === 0) {
+                                store.dispatch({
+                                    type: 'PKG::CONVERTING_SCAN_RESULTS_START',
+                                    payload: { ...pkgObj }
+                                });
+                            }
+                        }
+                    }
+                    tabPosition="top"
+                >
                     <TabPane
                         key="ort-scan-results-summary"
                         tab="Summary"
+
                     >
                         <Table
                             columns={[
@@ -104,7 +129,7 @@ const PackageScanResults = (props) => {
                                     )
                                 }
                             ]}
-                            dataSource={pkgObj.scan_results}
+                            dataSource={pkgObj.scan_summary}
                             locale={{
                                 emptyText: 'No scan results'
                             }}
@@ -127,7 +152,7 @@ const PackageScanResults = (props) => {
                         key="ort-scan-results-raw"
                         tab="Raw Scan Results"
                     >
-                        <span>temp</span>
+                        {renderRawScanResultsTable()}
                     </TabPane>
                 </Tabs>
             </ExpandablePanelContent>

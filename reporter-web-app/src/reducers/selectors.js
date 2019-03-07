@@ -79,8 +79,15 @@ const hasReportDataChanged = (newArgs, oldArgs) => newArgs.length !== oldArgs.le
 // ---- App selectors ----
 
 export const getAppView = state => state.app;
-export const getAppViewoading = state => state.app.loading;
+export const getAppViewLoading = state => state.app.loading;
 export const getAppViewShowKey = state => state.app.showKey;
+
+// ---- Temp selectors ----
+
+export const getTemp = state => state.temp;
+export const getTempLoading = state => state.temp.loading;
+export const getTempInput = state => state.temp.input;
+export const getTempOutput = state => state.temp.output;
 
 // ---- Data selectors ----
 

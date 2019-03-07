@@ -29,6 +29,7 @@ class TableView extends React.Component {
     }
 
     render() {
+        console.log('TableView Render');
         const {
             table: {
                 columns: {

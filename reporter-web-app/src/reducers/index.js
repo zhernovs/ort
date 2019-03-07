@@ -25,6 +25,10 @@ const initState = {
         },
         showKey: 'ort-loading'
     },
+    data: {
+        report: {},
+        reportLastUpdate: null
+    },
     summary: {
         licenses: {
             declaredChart: [],
@@ -48,6 +52,14 @@ const initState = {
         filterData: [],
         shouldComponentUpdate: false
     },
+    temp: {
+        loading: {
+            percentage: 0,
+            text: null
+        },
+        input: null,
+        output: null
+    },
     tree: {
         autoExpandParent: true,
         expandedKeys: [],
@@ -58,10 +70,6 @@ const initState = {
         selectedKeys: [],
         shouldComponentUpdate: false,
         showDrawer: false
-    },
-    data: {
-        report: {},
-        reportLastUpdate: null
     }
 };
 
@@ -216,6 +224,44 @@ export default (state = initState, action) => {
             summary: {
                 ...state.summary,
                 shouldComponentUpdate: true
+            }
+        };
+    }
+    case 'PKG::CONVERTING_SCAN_RESULTS_START': {
+        const { scanResults } = action.payload;
+
+        return {
+            ...state,
+            temp: {
+                ...state.temp,
+                input: scanResults,
+                loading: {
+                    ...state.temp.loading,
+                    text: 'Please wait. Loading raw scan results...',
+                    percentage: 1
+                }
+            }
+        };
+    }
+    case 'PKG::CONVERTING_SCAN_RESULTS_DONE': {
+        const { convertData } = action.payload;
+
+        const reportData = { ...state.data.report };
+
+        console.log('reportData', reportData, convertData);
+        return {
+            ...state,
+            data: {
+                ...state.data,
+                report: state.data.report
+            },
+            temp: {
+                loading: {
+                    percentage: 0,
+                    text: ''
+                },
+                input: null,
+                output: null
             }
         };
     }
