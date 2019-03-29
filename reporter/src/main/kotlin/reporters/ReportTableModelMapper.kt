@@ -134,7 +134,8 @@ class ReportTableModelMapper(private val resolutionProvider: ResolutionProvider)
                     declaredLicenses = declaredLicenses,
                     detectedLicenses = detectedLicenses,
                     analyzerIssues = analyzerIssues.map { it.toResolvableIssue() },
-                    scanIssues = scanIssues.map { it.toResolvableIssue() }
+                    scanIssues = scanIssues.map { it.toResolvableIssue() },
+                    curations = analyzerResult.packages.find { it.pkg.id == id }?.curations.orEmpty()
                 ).also { row ->
                     val isRowExcluded = pathExcludes.isNotEmpty() || projectExclude != null
                             || (scopes.isNotEmpty() && scopes.all { it.value.isNotEmpty() })

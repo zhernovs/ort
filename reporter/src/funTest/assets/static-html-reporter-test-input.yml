@@ -86,6 +86,7 @@ analyzer:
         id: "Maven:junit:junit:4.12"
         declared_licenses:
         - "Eclipse Public License 1.0"
+        concluded_license: "EPL-1.0"
         description: "JUnit is a unit testing framework for Java, created by Erich\
           \ Gamma and Kent Beck."
         homepage_url: "http://junit.org"
@@ -98,16 +99,33 @@ analyzer:
           hash: "a6c32b40bf3d76eca54e3c601e5d1470c86fcdfa"
           hash_algorithm: "SHA-1"
         vcs:
-          type: ""
-          url: ""
-          revision: ""
+          type: "git"
+          url: "https://github.com/junit-team/junit.git"
+          revision: "r4.12"
           path: ""
         vcs_processed:
-          type: ""
-          url: ""
-          revision: ""
+          type: "git"
+          url: "https://github.com/junit-team/junit.git"
+          revision: "r4.12"
           path: ""
-      curations: []
+      curations:
+      - base:
+          vcs:
+            type: ""
+            url: ""
+            revision: ""
+            path: ""
+        curation:
+          vcs:
+            type: "git"
+            url: "https://github.com/junit-team/junit.git"
+            revision: "r4.12"
+            path: ""
+          comment: "Add VCS info for JUnit."
+      - base: {}
+        curation:
+          concluded_license: "EPL-1.0"
+          comment: "Conclude the JUnit license."
     - package:
         id: "Maven:org.apache.commons:commons-lang3:3.5"
         declared_licenses:

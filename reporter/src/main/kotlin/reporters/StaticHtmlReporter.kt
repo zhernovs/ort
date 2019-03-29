@@ -432,13 +432,29 @@ class StaticHtmlReporter : Reporter() {
 
         tr("$cssClass $rowExcludedClass") {
             id = rowId
+
             td {
                 a {
                     href = "#$rowId"
                     +rowIndex.toString()
                 }
             }
-            td { +row.id.toCoordinates() }
+
+            td {
+                +row.id.toCoordinates()
+                if (row.curations.isNotEmpty()) {
+                    h4 { +"Applied curations:" }
+                    row.curations.forEach { curation ->
+                        pre {
+                            attributes["style"] = "font-size: 0.8em"
+                            code("language-yaml") {
+                                +"\n"
+                                +yamlMapper.writeValueAsString(curation).trimStart('-', '\n')
+                            }
+                        }
+                    }
+                }
+            }
 
             td {
                 if (row.scopes.isNotEmpty()) {

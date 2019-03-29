@@ -22,6 +22,7 @@ package com.here.ort.reporter.reporters
 import com.here.ort.model.Identifier
 import com.here.ort.model.LicenseFinding
 import com.here.ort.model.OrtResult
+import com.here.ort.model.PackageCurationResult
 import com.here.ort.model.Project
 import com.here.ort.model.ScanResult
 import com.here.ort.model.Severity
@@ -141,7 +142,12 @@ data class ReportTableModel(
         /**
          * All scan issues related to this package.
          */
-        val scanIssues: List<ResolvableIssue>
+        val scanIssues: List<ResolvableIssue>,
+
+        /**
+         * All curations that were applied to this dependency.
+         */
+        val curations: List<PackageCurationResult>
     )
 
     data class SummaryTable(
