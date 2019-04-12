@@ -19,6 +19,7 @@
 
 package com.here.ort.model
 
+import com.here.ort.spdx.SpdxExpression
 import java.util.SortedSet
 
 /**
@@ -45,7 +46,7 @@ data class ScanResultContainer(
  * Return all detected licenses for the container's package [id][ScanResultContainer.id], or an empty set if the
  * container is null.
  */
-fun ScanResultContainer?.getAllDetectedLicenses(): SortedSet<String> =
+fun ScanResultContainer?.getAllDetectedLicenses(): SortedSet<SpdxExpression> =
     sortedSetOf<String>().also { licenses ->
         if (this != null) {
             results.flatMapTo(licenses) {

@@ -42,6 +42,7 @@ import com.here.ort.scanner.ScanException
 import com.here.ort.scanner.ScanResultsStorage
 import com.here.ort.spdx.LICENSE_FILE_NAMES
 import com.here.ort.spdx.NON_LICENSE_FILENAMES
+import com.here.ort.spdx.SpdxExpression
 import com.here.ort.utils.CommandLineTool
 import com.here.ort.utils.ORT_CONFIG_FILENAME
 import com.here.ort.utils.OS
@@ -481,8 +482,8 @@ class ScanCode(name: String, config: ScannerConfiguration) : LocalScanner(name, 
      * Associate copyright findings to license findings throughout the whole result.
      */
     internal fun associateFindings(result: JsonNode): SortedSet<LicenseFinding> {
-        val locationsForLicenses = sortedMapOf<String, SortedSet<TextLocation>>()
-        val copyrightsForLicenses = sortedMapOf<String, SortedSet<CopyrightFinding>>()
+        val locationsForLicenses = sortedMapOf<SpdxExpression, SortedSet<TextLocation>>()
+        val copyrightsForLicenses = sortedMapOf<SpdxExpression, SortedSet<CopyrightFinding>>()
         val rootLicense = getRootLicense(result)
 
         result["files"].forEach { file ->

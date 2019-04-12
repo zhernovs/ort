@@ -28,6 +28,7 @@ import com.here.ort.model.processStatements
 import com.here.ort.model.removeGarbage
 import com.here.ort.reporter.Reporter
 import com.here.ort.reporter.ResolutionProvider
+import com.here.ort.spdx.SpdxExpression
 import com.here.ort.spdx.getLicenseText
 import com.here.ort.utils.ScriptRunner
 import com.here.ort.utils.log
@@ -125,7 +126,7 @@ class NoticeReporter : Reporter() {
         val excludes = ortResult.repository.config.excludes
         val scanRecord = ortResult.scanner!!.results
 
-        val licenseFindings = sortedMapOf<String, MutableSet<String>>()
+        val licenseFindings = sortedMapOf<SpdxExpression, MutableSet<String>>()
 
         scanRecord.scanResults.forEach { container ->
             if (excludes?.isExcluded(container.id, ortResult) != true) {

@@ -22,6 +22,7 @@ package com.here.ort.model
 import com.fasterxml.jackson.annotation.JsonAlias
 import com.fasterxml.jackson.annotation.JsonIgnore
 import com.fasterxml.jackson.annotation.JsonInclude
+import com.here.ort.spdx.SpdxExpression
 
 import java.time.Instant
 import java.util.SortedSet
@@ -63,7 +64,7 @@ data class ScanSummary(
     val errors: List<OrtIssue> = emptyList()
 ) {
     @get:JsonIgnore
-    val licenseFindingsMap = sortedMapOf<String, SortedSet<CopyrightFinding>>().also {
+    val licenseFindingsMap = sortedMapOf<SpdxExpression, SortedSet<CopyrightFinding>>().also {
         licenseFindings.forEach { finding ->
             it.getOrPut(finding.license) { sortedSetOf() } += finding.copyrights
         }

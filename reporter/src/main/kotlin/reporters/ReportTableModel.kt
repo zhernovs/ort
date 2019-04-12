@@ -173,7 +173,7 @@ data class ReportTableModel(
         /**
          * The detected licenses aggregated from all [ScanResult]s for this package.
          */
-        val detectedLicenses: SortedSet<String>,
+        val detectedLicenses: SortedSet<SpdxExpression>,
 
         /**
          * All analyzer issues related to this package, grouped by the [Identifier] of the [Project] they appear in.

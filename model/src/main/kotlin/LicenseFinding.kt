@@ -26,6 +26,7 @@ import com.fasterxml.jackson.databind.deser.std.StdDeserializer
 import com.fasterxml.jackson.module.kotlin.treeToValue
 
 import com.here.ort.model.config.CopyrightGarbage
+import com.here.ort.spdx.SpdxExpression
 import com.here.ort.utils.CopyrightStatementsProcessor
 
 import java.util.SortedMap
@@ -37,7 +38,7 @@ import java.util.TreeSet
  * a similar collection based on the [LicenseFinding] class is a bit cumbersome due to its required layout to support
  * legacy serialized formats.
  */
-typealias LicenseFindingsMap = SortedMap<String, MutableSet<String>>
+typealias LicenseFindingsMap = SortedMap<SpdxExpression, MutableSet<String>>
 
 fun LicenseFindingsMap.processStatements() =
     mapValues { (_, copyrights) ->
@@ -56,7 +57,7 @@ fun LicenseFindingsMap.removeGarbage(copyrightGarbage: CopyrightGarbage) =
  * found.
  */
 data class LicenseFinding(
-    val license: String,
+    val license: SpdxExpression,
     val locations: SortedSet<TextLocation>,
     val copyrights: SortedSet<CopyrightFinding>
 ) : Comparable<LicenseFinding> {
