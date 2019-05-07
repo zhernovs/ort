@@ -256,9 +256,9 @@ class MavenSupport(workspaceReader: WorkspaceReader) {
         return DefaultRepositorySystemSession(session).setWorkspaceReader(workspaceReader)
     }
 
-    fun buildMavenProject(pomFile: File): ProjectBuildingResult {
+    fun buildMavenProject(pomFile: File, resolveDependencies: Boolean): ProjectBuildingResult {
         val projectBuilder = container.lookup(ProjectBuilder::class.java, "default")
-        val projectBuildingRequest = createProjectBuildingRequest(true)
+        val projectBuildingRequest = createProjectBuildingRequest(resolveDependencies)
 
         return try {
             wrapMavenSession {

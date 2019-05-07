@@ -131,7 +131,7 @@ class Maven(
 
     override fun resolveDependencies(definitionFile: File): ProjectAnalyzerResult? {
         val workingDir = definitionFile.parentFile
-        val projectBuildingResult = maven.buildMavenProject(definitionFile)
+        val projectBuildingResult = maven.buildMavenProject(definitionFile, true)
         val mavenProject = projectBuildingResult.project
         val packages = mutableMapOf<String, Package>()
         val scopes = mutableMapOf<String, Scope>()
