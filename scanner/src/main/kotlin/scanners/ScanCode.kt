@@ -42,13 +42,7 @@ import com.here.ort.scanner.ScanException
 import com.here.ort.scanner.ScanResultsStorage
 import com.here.ort.spdx.LICENSE_FILE_NAMES
 import com.here.ort.spdx.NON_LICENSE_FILENAMES
-import com.here.ort.utils.CommandLineTool
-import com.here.ort.utils.ORT_CONFIG_FILENAME
-import com.here.ort.utils.Os
-import com.here.ort.utils.OkHttpClientHelper
-import com.here.ort.utils.ProcessCapture
-import com.here.ort.utils.log
-import com.here.ort.utils.unpack
+import com.here.ort.utils.*
 
 import java.io.File
 import java.io.IOException
@@ -363,20 +357,19 @@ class ScanCode(name: String, config: ScannerConfiguration) : LocalScanner(name, 
      * Get the SPDX license id (or a fallback) for a license finding.
      */
     private fun getLicenseId(license: JsonNode): String {
-        var name = license["spdx_license_key"].textValue()
+        val licenseKey = license["key"].textValue()
 
-        if (name.isEmpty()) {
-            val key = license["key"].textValue()
-            name = if (key == "unknown") {
-                "NOASSERTION"
-            } else {
-                // Starting with version 2.9.8, ScanCode uses "scancode" as a LicenseRef namespace, but only for SPDX
-                // output formats, see https://github.com/nexB/scancode-toolkit/pull/1307.
-                "LicenseRef-${scannerName.toLowerCase()}-$key"
-            }
+        // Determine the SPDX license id corresponding to the ScanCode license key.
+        val spdxLicenseId = license["spdx_license_key"].textValue().takeUnless { it.isEmpty() }
+            ?: if (licenseKey == "unknown") "NOASSERTION" else "LicenseRef-${scannerName.toLowerCase()}-$licenseKey"
+
+        val licenseExpression = license["matched_rule"]?.get("license_expression").textValueOrEmpty()
+
+        return if (licenseExpression.isNotEmpty()) {
+            licenseExpression.replace(licenseKey, spdxLicenseId)
+        } else {
+            spdxLicenseId
         }
-
-        return name
     }
 
     /**
