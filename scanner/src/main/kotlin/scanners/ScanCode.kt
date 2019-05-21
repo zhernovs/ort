@@ -339,16 +339,36 @@ class ScanCode(name: String, config: ScannerConfiguration) : LocalScanner(name, 
     }
 
     override fun generateSummary(startTime: Instant, endTime: Instant, result: JsonNode): ScanSummary {
-        val fileCount = result["files_count"].intValue()
-        val findings = associateFindings(result)
+        val licenseMap = mutableMapOf<String, String>()
         val errors = mutableListOf<OrtIssue>()
 
         result["files"]?.forEach { file ->
+            // Create a map of license keys to SPDX ids.
+            file["licenses"]?.forEach { license ->
+                val licenseKey = license["key"].textValue()
+                val spdxId = license["spdx_license_key"].textValue().takeUnless { it.isEmpty() } ?:
+                    if (licenseKey == "unknown") {
+                        "NOASSERTION"
+                    } else {
+                        if (license["is_exception"].booleanValue()) {
+                            licenseKey
+                        } else {
+                            "LicenseRef-${scannerName.toLowerCase()}-$licenseKey"
+                        }
+                    }
+
+                licenseMap[licenseKey] = spdxId
+            }
+
+            // Map scan errors to OrtIssues.
             val path = file["path"].textValue()
             errors += file["scan_errors"].map {
                 OrtIssue(source = scannerName, message = "${it.textValue()} (File: $path)")
             }
         }
+
+        val fileCount = result["files_count"].intValue()
+        val findings = associateFindings(licenseMap, result)
 
         return ScanSummary(startTime, endTime, fileCount, findings, errors)
     }
@@ -356,7 +376,7 @@ class ScanCode(name: String, config: ScannerConfiguration) : LocalScanner(name, 
     /**
      * Get the SPDX license id (or a fallback) for a license finding.
      */
-    private fun getLicenseId(license: JsonNode): String {
+    private fun getLicenseId(licenseMap: Map<String, String>, license: JsonNode): String {
         val licenseKey = license["key"].textValue()
 
         // Determine the SPDX license id corresponding to the ScanCode license key.
@@ -375,7 +395,7 @@ class ScanCode(name: String, config: ScannerConfiguration) : LocalScanner(name, 
     /**
      * Get the license found in one of the commonly named license files, if any, or an empty string otherwise.
      */
-    internal fun getRootLicense(result: JsonNode): String {
+    internal fun getRootLicense(licenseMap: Map<String, String>, result: JsonNode): String {
         val matchersForLicenseFiles = LICENSE_FILE_NAMES.map {
             FileSystems.getDefault().getPathMatcher("glob:$it")
         }
@@ -389,7 +409,7 @@ class ScanCode(name: String, config: ScannerConfiguration) : LocalScanner(name, 
             }
         } ?: return ""
 
-        return rootLicenseFile["licenses"].singleOrNull()?.let { getLicenseId(it) }.orEmpty()
+        return rootLicenseFile["licenses"].singleOrNull()?.let { getLicenseId(licenseMap, it) }.orEmpty()
     }
 
     /**
@@ -470,17 +490,17 @@ class ScanCode(name: String, config: ScannerConfiguration) : LocalScanner(name, 
     /**
      * Associate copyright findings to license findings throughout the whole result.
      */
-    internal fun associateFindings(result: JsonNode): SortedSet<LicenseFinding> {
+    internal fun associateFindings(licenseMap: Map<String, String>, result: JsonNode): SortedSet<LicenseFinding> {
         val locationsForLicenses = sortedMapOf<String, SortedSet<TextLocation>>()
         val copyrightsForLicenses = sortedMapOf<String, SortedSet<CopyrightFinding>>()
-        val rootLicense = getRootLicense(result)
+        val rootLicense = getRootLicense(licenseMap, result)
 
         result["files"].forEach { file ->
             val path = file["path"].textValue()
 
             val licenses = file["licenses"]?.toList().orEmpty()
             licenses.forEach {
-                val licenseId = getLicenseId(it)
+                val licenseId = getLicenseId(licenseMap, it)
                 val licenseStartLine = it["start_line"].intValue()
                 val licenseEndLine = it["end_line"].intValue()
 
