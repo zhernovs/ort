@@ -23,32 +23,15 @@ import ch.frankel.slf4k.*
 import ch.qos.logback.classic.Level
 
 import com.fasterxml.jackson.databind.JsonNode
+import com.here.ort.model.*
 
-import com.here.ort.model.CopyrightFinding
-import com.here.ort.model.EMPTY_JSON_NODE
-import com.here.ort.model.LicenseFinding
-import com.here.ort.model.OrtIssue
-import com.here.ort.model.Provenance
-import com.here.ort.model.ScanResult
-import com.here.ort.model.ScanSummary
-import com.here.ort.model.ScannerDetails
-import com.here.ort.model.TextLocation
 import com.here.ort.model.config.ScannerConfiguration
-import com.here.ort.model.jsonMapper
-import com.here.ort.scanner.AbstractScannerFactory
-import com.here.ort.scanner.HTTP_CACHE_PATH
-import com.here.ort.scanner.LocalScanner
-import com.here.ort.scanner.ScanException
-import com.here.ort.scanner.ScanResultsStorage
+import com.here.ort.scanner.*
 import com.here.ort.spdx.LICENSE_FILE_NAMES
 import com.here.ort.spdx.NON_LICENSE_FILENAMES
-import com.here.ort.utils.CommandLineTool
-import com.here.ort.utils.ORT_CONFIG_FILENAME
-import com.here.ort.utils.Os
-import com.here.ort.utils.OkHttpClientHelper
-import com.here.ort.utils.ProcessCapture
-import com.here.ort.utils.log
-import com.here.ort.utils.unpack
+import com.here.ort.spdx.SpdxExpression
+import com.here.ort.spdx.SpdxLicenseIdExpression
+import com.here.ort.utils.*
 
 import java.io.File
 import java.io.IOException
@@ -207,6 +190,26 @@ class ScanCode(name: String, config: ScannerConfiguration) : LocalScanner(name, 
         }
     }
 
+    private data class Result(
+        val fileCount: Int,
+        val files: List<FileEntry>
+    )
+
+    private data class FileEntry(
+        val path: File,
+        val license: List<LicenseEntry>
+    )
+
+    private data class LicenseEntry(
+        val startLine: Int,
+        val endLine: Int,
+        val matchedRule: LicenseRule
+    )
+
+    private data class LicenseRule(
+        val licenseExpression: SpdxExpression
+    )
+
     override val scannerVersion = "2.9.7"
     override val resultFileExt = "json"
 
@@ -250,6 +253,16 @@ class ScanCode(name: String, config: ScannerConfiguration) : LocalScanner(name, 
     }
 
     override fun bootstrap(): File {
+        val unpackDir = getUserOrtDirectory().resolve("$TOOL_NAME/$scannerName/$scannerVersion")
+
+        try {
+            if (getVersion(unpackDir) == scannerVersion) return unpackDir
+        } catch (e: IOException) {
+            // Continue in case of a non-existing file.
+        }
+
+        unpackDir.safeDeleteRecursively(force = true)
+
         val archive = when {
             // Use the .zip file despite it being slightly larger than the .tar.gz file here as the latter for some
             // reason does not complete to unpack on Windows.
@@ -278,8 +291,6 @@ class ScanCode(name: String, config: ScannerConfiguration) : LocalScanner(name, 
 
             val scannerArchive = createTempFile("ort", "$scannerName-${url.substringAfterLast("/")}")
             Okio.buffer(Okio.sink(scannerArchive)).use { it.writeAll(body.source()) }
-
-            val unpackDir = createTempDir("ort", "$scannerName-$scannerVersion").apply { deleteOnExit() }
 
             log.info { "Unpacking '$scannerArchive' to '$unpackDir'... " }
             scannerArchive.unpack(unpackDir)
@@ -318,6 +329,9 @@ class ScanCode(name: String, config: ScannerConfiguration) : LocalScanner(name, 
         if (process.stderr.isNotBlank()) {
             log.debug { process.stderr }
         }
+
+        val result2 = resultsFile.readValue<Result>()
+        println(result2)
 
         val result = getRawResult(resultsFile)
         val summary = generateSummary(startTime, endTime, result)
