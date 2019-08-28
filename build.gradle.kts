@@ -79,7 +79,7 @@ subprojects {
         }
     }
 
-    if (name == "reporter-web-app") return@subprojects
+    if (name in listOf("modelmulti", "reporter-web-app")) return@subprojects
 
     // Apply core plugins.
     apply(plugin = "jacoco")

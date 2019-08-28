@@ -6135,6 +6135,11 @@ kleur@^3.0.2:
   resolved "https://registry.yarnpkg.com/kleur/-/kleur-3.0.2.tgz#83c7ec858a41098b613d5998a7b653962b504f68"
   integrity sha512-3h7B2WRT5LNXOtQiAaWonilegHcPSf9nLVXlSTci8lu1dZUuui61+EsPEZqSVxY7rXYmB2DVKMQILxaO5WL61Q==
 
+kotlin@1.3.50:
+  version "1.3.50"
+  resolved "https://registry.yarnpkg.com/kotlin/-/kotlin-1.3.50.tgz#40265fc9efd8992247e04dc6520a3bbd1f4c412c"
+  integrity sha512-Fxi9WxzsMwtdnkaqHh5afShZRcQUn4rUWLLJyIPRlf2qrfbqNt6+SF/bIfHXC+n1DEanr5SSDOxp8YMJom9V+A==
+
 last-call-webpack-plugin@^3.0.0:
   version "3.0.0"
   resolved "https://registry.yarnpkg.com/last-call-webpack-plugin/-/last-call-webpack-plugin-3.0.0.tgz#9742df0e10e3cf46e5c0381c2de90d3a7a2d7555"
@@ -6643,6 +6648,9 @@ mkdirp@0.5.1, mkdirp@0.5.x, mkdirp@^0.5.0, mkdirp@^0.5.1, mkdirp@~0.5.0, mkdirp@
   integrity sha1-MAV0OOrGz3+MR2fzhkjWaX11yQM=
   dependencies:
     minimist "0.0.8"
+
+"modelmulti@file:../modelmulti/build/classes/kotlin/js/main":
+  version "0.0.0"
 
 moment@2.x, moment@^2.24.0:
   version "2.24.0"

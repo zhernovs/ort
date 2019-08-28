@@ -28,6 +28,8 @@ import {
 } from 'antd';
 import { connect } from 'react-redux';
 import PropTypes from 'prop-types';
+import modelmulti from 'modelmulti/modelmulti';
+
 import AboutModal from './components/AboutModal';
 import SummaryView from './components/SummaryView';
 import TableView from './components/TableView';
@@ -50,6 +52,11 @@ const { TabPane } = Tabs;
 class ReporterApp extends Component {
     constructor(props) {
         super(props);
+
+        console.log('Starting ReporterApp');
+        modelmulti.fooFrob_61zpoe$('bar');
+        const foo = new modelmulti.Foo('bar');
+        foo.frob();
 
         store.dispatch({ type: 'APP::LOADING_START' });
     }
