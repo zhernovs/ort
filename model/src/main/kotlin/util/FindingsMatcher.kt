@@ -29,6 +29,35 @@ import java.util.SortedSet
 
 import kotlin.math.absoluteValue
 
+data class LicenseFindingWithCopyrights(
+    val licenseFinding: LicenseFinding,
+    val copyrightFindings: List<CopyrightFinding>
+)
+
+data class MatchResult(
+    val licenseFindings: List<LicenseFindingWithCopyrights> = emptyList(),
+    val rootLicenseCopyrights: List<CopyrightFinding> = emptyList(),
+    val unmatchedCopyrights: List<CopyrightFinding> = emptyList()
+) {
+    fun toLicenseFindings(): LicenseFindings {
+
+    }
+}
+
+private fun Collection<MatchResult>.mergeAll(): MatchResult {
+    val licenseFindings = mutableListOf<LicenseFindingWithCopyrights>()
+    val rootLicenseCopyrights = mutableListOf<CopyrightFinding>()
+    val unmatchedCopyrights = mutableListOf<CopyrightFinding>()
+
+    forEach {
+        licenseFindings.addAll(it.licenseFindings)
+        rootLicenseCopyrights.addAll(it.rootLicenseCopyrights)
+        unmatchedCopyrights.addAll(it.unmatchedCopyrights)
+    }
+
+    return MatchResult(licenseFindings, rootLicenseCopyrights, unmatchedCopyrights)
+}
+
 /**
  * A class for matching copyright findings to license findings. Copyright statements may be matched either to license
  * findings located nearby in the same file or to a license found in a license file whereas the given
@@ -62,16 +91,14 @@ class FindingsMatcher(
     private fun getClosestCopyrightStatements(
         copyrights: List<CopyrightFinding>,
         licenseStartLine: Int
-    ): Set<CopyrightFindings> {
+    ): List<CopyrightFinding> {
         require(copyrights.map { it.location.path }.distinct().size <= 1) {
             "Given copyright statements must all point to the same file."
         }
 
-        val closestCopyrights = copyrights.filter {
+        return copyrights.filter {
             (it.location.startLine - licenseStartLine).absoluteValue <= toleranceLines
         }
-
-        return closestCopyrights.map { it.toCopyrightFindings() }.toSet()
     }
 
     private fun CopyrightFinding.toCopyrightFindings() =
@@ -85,44 +112,53 @@ class FindingsMatcher(
      */
     private fun associateFileFindings(
         licenses: List<LicenseFinding>,
-        copyrights: List<CopyrightFinding>,
-        rootLicenses: Collection<String>
-    ): Map<String, Set<CopyrightFindings>> {
+        copyrights: List<CopyrightFinding>
+    ): MatchResult {
         require((licenses.map { it.location.path } + copyrights.map { it.location.path }).distinct().size <= 1) {
             "The given license and copyright findings must all point to the same file."
         }
 
-        val copyrightsForLicenses = mutableMapOf<String, MutableSet<CopyrightFindings>>()
-        val allCopyrightStatements = copyrights.map { it.toCopyrightFindings() }.toMutableSet()
-
         when (licenses.size) {
             0 -> {
                 // If there is no license finding but copyright findings, associate them with all root licenses.
-                rootLicenses.associateByTo(copyrightsForLicenses, { it }, { allCopyrightStatements })
+                return MatchResult(rootLicenseCopyrights = copyrights)
             }
 
             1 -> {
                 // If there is only a single license finding, associate all copyright findings with that license.
-                licenses.associateByTo(copyrightsForLicenses, { it.license }, { allCopyrightStatements })
+                return MatchResult(licenseFindings = listOf(LicenseFindingWithCopyrights(licenses.first(), copyrights)))
             }
 
             else -> {
                 // If there are multiple license findings in a single file, search for the closest copyright statements
                 // for each of these, if any.
-                licenses.forEach {
-                    val closestCopyrights = getClosestCopyrightStatements(
-                        copyrights = copyrights,
-                        licenseStartLine = it.location.startLine
+                val licenseFindings = licenses.map {
+                    LicenseFindingWithCopyrights(
+                        licenseFinding = it,
+                        copyrightFindings = getClosestCopyrightStatements(copyrights, it.location.startLine).toList()
                     )
-                    copyrightsForLicenses.getOrPut(it.license) { mutableSetOf() } += closestCopyrights
                 }
+                return MatchResult(
+                    licenseFindings = licenseFindings,
+                    unmatchedCopyrights = copyrights - (licenseFindings.flatMap { it.copyrightFindings } )
+                )
             }
         }
-
-        return copyrightsForLicenses
     }
 
-    /**
+    fun match(licenseFindings: Collection<LicenseFinding>, copyrightFindings: Collection<CopyrightFinding>):
+            MatchResult {
+        val licenseFindingsByPath = licenseFindings.groupBy { it.location.path }
+        val copyrightFindingsByPath = copyrightFindings.groupBy { it.location.path }
+        val paths = (licenseFindingsByPath.keys + copyrightFindingsByPath.keys).toSet()
+
+        return paths.map { path ->
+            associateFileFindings(licenseFindingsByPath[path].orEmpty(), copyrightFindingsByPath[path].orEmpty())
+        }.mergeAll()
+    }
+
+
+        /**
      * Return an association of the given [copyrightFindings] to [licenseFindings].
      * Copyright findings are either matched to a license finding located nearby in the same file or to a license
      * finding pointing to a license file. Whether a file is a license file is determined by the
