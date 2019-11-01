@@ -34,7 +34,7 @@ import org.hamcrest.MatcherAssert.assertThat
 
 class ExcelReporterTest : WordSpec({
     "ExcelReporter" should {
-        "successfully export to an Excel sheet".config(enabled = false) {
+        "successfully export to an Excel sheet" {
             val outputStream = ByteArrayOutputStream()
             ExcelReporter().generateReport(
                 outputStream,
