@@ -29,6 +29,7 @@ sourceSets.named("main") {
 
 repositories {
     maven("http://www.robotooling.com/maven/")
+    maven("https://jitpack.io")
 }
 
 dependencies {
@@ -49,6 +50,7 @@ dependencies {
     // the HTML generated in StaticHtmlReporter is slightly different with different Java versions.
     implementation("xalan:xalan:$xalanVersion")
 
-    funTestImplementation("bad.robot:simple-excel:$simpleExcelVersion")
+    //funTestImplementation("bad.robot:simple-excel:$simpleExcelVersion")
+    funTestImplementation("com.github.tobyweston:simple-excel:merged_regions-SNAPSHOT")
     funTestImplementation("org.hamcrest:hamcrest-core:$hamcrestCoreVersion")
 }
