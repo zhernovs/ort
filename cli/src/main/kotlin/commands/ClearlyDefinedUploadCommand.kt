@@ -36,6 +36,7 @@ import com.here.ort.clearlydefined.ClearlyDefinedService.ErrorResponse
 import com.here.ort.clearlydefined.ClearlyDefinedService.Licensed
 import com.here.ort.clearlydefined.ClearlyDefinedService.Patch
 import com.here.ort.clearlydefined.ClearlyDefinedService.Server
+import com.here.ort.model.Package
 import com.here.ort.model.PackageCuration
 import com.here.ort.model.config.OrtConfiguration
 import com.here.ort.model.jsonMapper
@@ -112,6 +113,13 @@ object ClearlyDefinedUploadCommand : CommandWithHelp() {
         val curations = absoluteInputFile.readValue<List<PackageCuration>>()
 
         val service = ClearlyDefinedService.create(server)
+
+        curations.groupBy { it.id }.forEach { (id, pkgCurations) ->
+            val a = pkgCurations.fold(Package.EMPTY.toCuratedPackage()) { current, curation ->
+                curation.data.apply(current)
+            }
+            PackageCuration(id, a.curations.last().curation)
+        }
 
         curations.forEachIndexed { index, curation ->
             val patchCall = service.putCuration(curation.toContributionPatch())
