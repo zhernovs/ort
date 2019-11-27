@@ -161,7 +161,6 @@ object AnalyzerCommand : CommandWithHelp() {
         println("Analyzing project path:\n\t$absoluteInputDir")
 
         val analyzerConfig = AnalyzerConfiguration(ignoreToolVersions, allowDynamicVersions)
-        val analyzer = Analyzer(analyzerConfig)
 
         val curationProvider = FallbackPackageCurationProvider(
             listOfNotNull(
@@ -170,9 +169,12 @@ object AnalyzerCommand : CommandWithHelp() {
             )
         )
 
-        val ortResult = analyzer.analyze(
-            absoluteInputDir, packageManagers, curationProvider, absoluteRepositoryConfigurationFile
+        val analyzer = Analyzer(
+            config = analyzerConfig,
+            packageManagers = packageManagers,
+            curationProvider = curationProvider
         )
+        val ortResult = analyzer.analyze(absoluteInputDir, absoluteRepositoryConfigurationFile)
 
         println("Found ${ortResult.getProjects().size} project(s) in total.")
 

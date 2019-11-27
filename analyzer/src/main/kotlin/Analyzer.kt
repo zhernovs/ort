@@ -52,11 +52,13 @@ const val HTTP_CACHE_PATH = "$TOOL_NAME/cache/http"
 /**
  * The class to run the analysis. The signatures of public functions in this class define the library API.
  */
-class Analyzer(private val config: AnalyzerConfiguration) {
+class Analyzer(
+    private val config: AnalyzerConfiguration,
+    private val packageManagers: List<PackageManagerFactory> = PackageManager.ALL,
+    private val curationProvider: PackageCurationProvider? = null
+) {
     fun analyze(
         absoluteProjectPath: File,
-        packageManagers: List<PackageManagerFactory> = PackageManager.ALL,
-        curationProvider: PackageCurationProvider? = null,
         repositoryConfigurationFile: File? = null
     ): OrtResult {
         val startTime = Instant.now()
