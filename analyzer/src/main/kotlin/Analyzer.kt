@@ -77,16 +77,15 @@ class Analyzer(
         log.debug { "Using the following configuration settings:\n$repositoryConfiguration" }
 
         // Map files by the package manager factory that manages them.
-        val factoryFiles = if (packageManagers.size == 1 && absoluteProjectPath.isFile) {
+        val managerFiles = if (packageManagers.size == 1 && absoluteProjectPath.isFile) {
             // If only one package manager is activated, treat the given path as definition file for that package
             // manager despite its name.
             mutableMapOf(packageManagers.first() to listOf(absoluteProjectPath))
         } else {
             PackageManager.findManagedFiles(absoluteProjectPath, packageManagers).toMutableMap()
-        }
+        }.mapKeys { it.key.create(absoluteProjectPath, config, repositoryConfiguration) }
 
-        val managedFiles = factoryFiles.mapNotNull { (factory, files) ->
-            val manager = factory.create(absoluteProjectPath, config, repositoryConfiguration)
+        val managedFiles = managerFiles.mapNotNull { (manager, files) ->
             val mappedFiles = manager.mapDefinitionFiles(files)
             Pair(manager, mappedFiles).takeIf { mappedFiles.isNotEmpty() }
         }.toMap(mutableMapOf())
@@ -95,7 +94,7 @@ class Analyzer(
             it.parentFile.absoluteFile == absoluteProjectPath
         }
 
-        if (factoryFiles.isEmpty() || !hasDefinitionFileInRootDirectory) {
+        if (managerFiles.isEmpty() || !hasDefinitionFileInRootDirectory) {
             Unmanaged.Factory().create(absoluteProjectPath, config, repositoryConfiguration).let {
                 managedFiles[it] = listOf(absoluteProjectPath)
             }
