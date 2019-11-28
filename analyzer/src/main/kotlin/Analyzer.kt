@@ -85,24 +85,24 @@ class Analyzer(
             PackageManager.findManagedFiles(absoluteProjectPath, packageManagers).toMutableMap()
         }.mapKeys { it.key.create(absoluteProjectPath, config, repositoryConfiguration) }
 
-        val managedFiles = managerFiles.mapNotNull { (manager, files) ->
+        val mappedManagerFiles = managerFiles.mapNotNull { (manager, files) ->
             val mappedFiles = manager.mapDefinitionFiles(files)
             Pair(manager, mappedFiles).takeIf { mappedFiles.isNotEmpty() }
         }.toMap(mutableMapOf())
 
-        val hasDefinitionFileInRootDirectory = managedFiles.values.flatten().any {
+        val hasDefinitionFileInRootDirectory = mappedManagerFiles.values.flatten().any {
             it.parentFile.absoluteFile == absoluteProjectPath
         }
 
         if (managerFiles.isEmpty() || !hasDefinitionFileInRootDirectory) {
             Unmanaged.Factory().create(absoluteProjectPath, config, repositoryConfiguration).let {
-                managedFiles[it] = listOf(absoluteProjectPath)
+                mappedManagerFiles[it] = listOf(absoluteProjectPath)
             }
         }
 
         if (log.delegate.isInfoEnabled) {
             // Log the summary of projects found per package manager.
-            managedFiles.forEach { (manager, files) ->
+            mappedManagerFiles.forEach { (manager, files) ->
                 // No need to use curly-braces-syntax for logging here as the log level check is already done above.
                 log.info("${manager.managerName} projects found in:")
                 files.forEach { file ->
@@ -112,7 +112,7 @@ class Analyzer(
         }
 
         // Resolve dependencies per package manager.
-        val analyzerResult = runBlocking { analyzeInParallel(managedFiles, curationProvider) }
+        val analyzerResult = runBlocking { analyzeInParallel(mappedManagerFiles, curationProvider) }
 
         val workingTree = VersionControlSystem.forDirectory(absoluteProjectPath)
         val vcs = workingTree?.getInfo() ?: VcsInfo.EMPTY
