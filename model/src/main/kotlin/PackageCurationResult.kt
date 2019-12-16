@@ -20,16 +20,17 @@
 package com.here.ort.model
 
 /**
- * This class contains information about which values were changed when applying a curation.
+ * This class contains information about original and new values when applying a curation.
  */
 data class PackageCurationResult(
     /**
-     * Contains the values from before applying the [curation]. Values which were not changed are null.
+     * Contains the original values of the properties which are changed by the [curation]. Values which are not changed
+     * are null.
      */
     val base: PackageCurationData,
 
     /**
-     * The curation that was applied.
+     * Contains the new values for of the curated properties.
      */
     val curation: PackageCurationData
 )
