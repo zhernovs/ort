@@ -388,19 +388,25 @@ open class Npm(
 
     private fun getModuleDependencies(moduleDir: File, scopes: Set<String>): SortedSet<PackageReference> {
         val workspaceModuleDirs = findWorkspaceSubmodules(moduleDir)
+        val knownSubtrees: MutableMap<Identifier, PackageReference> = mutableMapOf()
 
-        return sortedSetOf<PackageReference>().apply {
-            addAll(getPackageReferenceForModule(moduleDir, scopes)!!.dependencies)
+        val result = sortedSetOf<PackageReference>()
 
-            workspaceModuleDirs.forEach { workspaceModuleDir ->
-                addAll(getPackageReferenceForModule(workspaceModuleDir, scopes, listOf(moduleDir))!!.dependencies)
-            }
+        val rootProjectDependencies = getPackageReferenceForModule(moduleDir, scopes, knownSubtrees)!!.dependencies
+        result.addAll(rootProjectDependencies)
+
+        val submoduleDependencies = workspaceModuleDirs.flatMap { workspaceModuleDir ->
+            getPackageReferenceForModule(workspaceModuleDir, scopes, knownSubtrees, listOf(moduleDir))!!.dependencies
         }
+        result.addAll(submoduleDependencies)
+
+        return result
     }
 
     private fun getPackageReferenceForModule(
         moduleDir: File,
         scopes: Set<String>,
+        knownSubtrees: MutableMap<Identifier, PackageReference> = mutableMapOf(),
         ancestorModuleDirs: List<File> = emptyList(),
         ancestorModuleIds: List<Identifier> = emptyList(),
         packageType: String = managerName
@@ -421,6 +427,8 @@ open class Npm(
             return null
         }
 
+        if (knownSubtrees.containsKey(moduleId)) return knownSubtrees[moduleId]!!
+
         log.debug { "Building dependency tree for '${moduleInfo.name}' from directory '$moduleDir'." }
 
         val pathToRoot = listOf(moduleDir) + ancestorModuleDirs
@@ -436,7 +444,8 @@ open class Npm(
                     scopes = setOf("dependencies", "optionalDependencies"),
                     ancestorModuleDirs = dependencyModuleDirPath.subList(1, dependencyModuleDirPath.size),
                     ancestorModuleIds = ancestorModuleIds + moduleId,
-                    packageType = "NPM"
+                    packageType = "NPM",
+                    knownSubtrees = knownSubtrees
                 )?.let { dependencies.add(it) }
 
                 return@forEach
@@ -446,7 +455,11 @@ open class Npm(
             getPackageReferenceForMissingModule(dependencyName, pathToRoot.first())
         }
 
-        return PackageReference(id = moduleId, dependencies = dependencies)
+        val result = PackageReference(id = moduleId, dependencies = dependencies)
+        knownSubtrees[moduleId] = result
+        log.debug{ "knownSubtrees: " + knownSubtrees.size}
+
+        return result
     }
 
     private data class ModuleInfo(
