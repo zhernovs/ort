@@ -82,8 +82,16 @@ data class Scope(
      */
     @JsonIgnore
     fun getDependencyTreeDepth(): Int {
-        fun getTreeDepthRec(dependencies: Collection<PackageReference>): Int =
-            dependencies.map { dependency -> 1 + getTreeDepthRec(dependency.dependencies) }.max() ?: 0
+        fun getTreeDepthRec(dependencies: Collection<PackageReference>, x: Set<Identifier> = emptySet()): Int {
+            return dependencies.map { dependency ->
+                if (x.contains(dependency.id)) {
+                    println("cycle in scope: " + name)
+                    println("cycle: " + x.joinToString("\n- "))
+                    System.exit(0)
+                }
+                1 + getTreeDepthRec(dependency.dependencies, x + dependency.id)
+            }.max() ?: 0
+        }
 
         return getTreeDepthRec(dependencies)
     }

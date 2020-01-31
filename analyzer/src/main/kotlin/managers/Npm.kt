@@ -47,6 +47,7 @@ import com.here.ort.model.config.RepositoryConfiguration
 import com.here.ort.model.createAndLogIssue
 import com.here.ort.model.jsonMapper
 import com.here.ort.model.readValue
+import com.here.ort.model.yamlMapper
 import com.here.ort.spdx.SpdxLicense
 import com.here.ort.utils.CommandLineTool
 import com.here.ort.utils.Os
@@ -69,6 +70,7 @@ import java.util.SortedSet
 
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import org.apache.commons.lang3.ThreadUtils
 
 /**
  * The [Node package manager](https://www.npmjs.com/) for JavaScript.
@@ -514,6 +516,8 @@ open class Npm(
         val projectDir = packageJson.parentFile
         val vcsFromPackage = parseVcsInfo(json)
 
+
+        log.debug { "PROJECT" }
         val project = Project(
             id = Identifier(
                 type = managerName,
@@ -529,7 +533,33 @@ open class Npm(
             scopes = scopes
         )
 
-        return ProjectAnalyzerResult(project, packages.mapTo(sortedSetOf()) { it.toCuratedPackage() })
+        log.debug { "YAML" }
+        File("/home/viernau/analyzer-result.yml").writeText(yamlMapper.writeValueAsString(project))
+
+        log.debug { "RESULT" }
+        project.scopes.forEach { scope ->
+            println("scope-depth: " + scope.name)
+            println(scope.getDependencyTreeDepth())
+        }
+
+        val result = ProjectAnalyzerResult(project, packages.mapTo(sortedSetOf()) { it.toCuratedPackage() })
+        log.debug { "RESULT DONE" }
+
+        val x = Thread(Runnable {
+            while(true) {
+                log.debug { "---------------- Thread dump ----------------" }
+                ThreadUtils.getAllThreads().forEach { thread ->
+                    log.debug { "name: ${thread.name}, isDaemon: ${thread.isDaemon}, isAlive: ${thread.isAlive}" }
+                    thread.stackTrace.forEach {
+                        log.debug { it.fileName + ":" + it.lineNumber }
+                    }
+                }
+                Thread.sleep(1000)
+            }
+        })
+        x.start()
+
+        return result
     }
 
     /**

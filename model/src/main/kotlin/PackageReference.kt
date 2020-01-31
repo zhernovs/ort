@@ -23,6 +23,7 @@ import com.fasterxml.jackson.annotation.JsonAlias
 import com.fasterxml.jackson.annotation.JsonInclude
 
 import java.util.SortedSet
+import java.util.Stack
 
 // A custom value filter for [PackageLinkage] to work around
 // https://github.com/FasterXML/jackson-module-kotlin/issues/193.
@@ -69,15 +70,27 @@ data class PackageReference(
      * etc. A value below 0 means to not limit the depth. If [includeErroneous] is true, [PackageReference]s with issues
      * (but not their dependencies without issues) are excluded, otherwise they are included.
      */
-    fun collectDependencies(maxDepth: Int = -1, includeErroneous: Boolean = true): SortedSet<PackageReference> =
-        dependencies.fold(sortedSetOf<PackageReference>()) { refs, ref ->
-            refs.also {
-                if (maxDepth != 0) {
-                    if (ref.issues.isEmpty() || includeErroneous) it += ref
-                    it += ref.collectDependencies(maxDepth - 1, includeErroneous)
-                }
+    fun collectDependencies(maxDepth: Int = -1, includeErroneous: Boolean = true): SortedSet<PackageReference> {
+        println("collectDeps: $maxDepth $includeErroneous")
+        val result = mutableMapOf<Identifier, PackageReference>()
+
+        val stack = Stack<PackageReference>()
+        stack.add(this)
+
+        while(stack.isNotEmpty()) {
+            val p = stack.pop()
+            if (!result.contains(p.id)) {
+                result.put(p.id, p)
+                p.dependencies.forEach { stack.add(it) }
+                println("collectDeps: " + result.size)
             }
         }
+
+        println("convert to sorted set")
+        val s = result.values.toSortedSet()
+        println("DONE")
+        return s
+    }
 
     /**
      * A comparison function to sort package references by their identifier. This function ignores all other properties
