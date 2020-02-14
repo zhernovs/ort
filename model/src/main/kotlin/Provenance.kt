@@ -20,6 +20,7 @@
 package com.here.ort.model
 
 import com.fasterxml.jackson.annotation.JsonAlias
+import com.fasterxml.jackson.annotation.JsonIgnore
 import com.fasterxml.jackson.annotation.JsonInclude
 
 import com.here.ort.utils.toHexString
@@ -62,7 +63,7 @@ data class Provenance(
      */
     @JsonAlias("originalVcsInfo")
     @JsonInclude(JsonInclude.Include.NON_NULL)
-    val originalVcsInfo: VcsInfo? = null
+    val originalVcsInfo: VcsInfo? = vcsInfo
 ) {
     companion object {
         private val SHA1_DIGEST by lazy { MessageDigest.getInstance("SHA-1") }
@@ -73,6 +74,13 @@ data class Provenance(
             "Provenance does not allow both 'sourceArtifact' and 'vcsInfo' to be set, otherwise it is ambiguous " +
                     "which was used."
         }
+    }
+
+    @JsonIgnore
+    val description = when {
+        sourceArtifact != null -> "$sourceArtifact"
+        vcsInfo != null -> "$vcsInfo"
+        else -> "empty provenance"
     }
 
     /**

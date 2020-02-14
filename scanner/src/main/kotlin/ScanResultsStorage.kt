@@ -135,14 +135,10 @@ abstract class ScanResultsStorage {
     val stats = AccessStatistics()
 
     /**
-     * Read all [ScanResult]s for this [id] from the storage.
-     *
-     * @param id The [Identifier] of the scanned [Package].
-     *
-     * @return The [ScanResultContainer] for this [id].
+     * Read all [ScanResult]s for this [package][pkg] from the storage.
      */
-    fun read(id: Identifier) =
-        readFromStorage(id).also {
+    fun read(pkg: Package): ScanResultContainer =
+        readFromStorage(pkg).also {
             stats.numReads.incrementAndGet()
             if (it.results.isNotEmpty()) {
                 stats.numHits.incrementAndGet()
@@ -150,18 +146,9 @@ abstract class ScanResultsStorage {
         }
 
     /**
-     * Read the [ScanResult]s matching the [id][Package.id] of [pkg] and the [scannerDetails] from the storage.
-     * [ScannerDetails.isCompatible] is used to check if the results are compatible with the provided [scannerDetails].
-     * Also [Package.sourceArtifact], [Package.vcs], and [Package.vcsProcessed] are used to check if the scan result
-     * matches the expected source code location. This is important to find the correct results when different revisions
-     * of a package using the same version name are used (e.g. multiple scans of 1.0-SNAPSHOT during development).
-     *
-     * @param pkg The [Package] to look up results for.
-     * @param scannerDetails Details about the scanner that was used to scan the [Package].
-     *
-     * @return The [ScanResultContainer] matching the [id][Package.id] of [pkg] and the [scannerDetails].
+     * Read the [ScanResult]s for this [package][pkg] with matching [scannerDetails] from the storage.
      */
-    fun read(pkg: Package, scannerDetails: ScannerDetails) =
+    fun read(pkg: Package, scannerDetails: ScannerDetails): ScanResultContainer =
         readFromStorage(pkg, scannerDetails).also {
             stats.numReads.incrementAndGet()
             if (it.results.isNotEmpty()) {
@@ -170,18 +157,14 @@ abstract class ScanResultsStorage {
         }
 
     /**
-     * Add a [ScanResult] to the [ScanResultContainer] for this [id] and write it to the storage.
-     *
-     * @param id The [Identifier] of the scanned [Package].
-     * @param scanResult The [ScanResult]. The [ScanResult.rawResult] must not be null.
-     *
-     * @return An [AddResult] describing if the operation was successful.
+     * Add a [scanResult] to the storage.
      */
-    fun add(id: Identifier, scanResult: ScanResult): AddResult {
+    fun add(scanResult: ScanResult): AddResult {
         // Do not store empty scan results. It is likely that something went wrong when they were created, and if not,
         // it is cheap to re-create them.
         if (scanResult.summary.fileCount == 0) {
-            val message = "Not storing scan result for '${id.toCoordinates()}' because no files were scanned."
+            val message =
+                "Not storing scan result for '${scanResult.provenance.description}' because no files were scanned."
             log.info { message }
 
             return AddResult(false, message)
@@ -190,7 +173,8 @@ abstract class ScanResultsStorage {
         // Do not store scan results without raw result. The raw result can be set to null for other usages, but in the
         // storage it must never be null.
         if (scanResult.rawResult == null) {
-            val message = "Not storing scan result for '${id.toCoordinates()}' because the raw result is null."
+            val message =
+                "Not storing scan result for '${scanResult.provenance.description}' because the raw result is null."
             log.info { message }
 
             return AddResult(false, message)
@@ -199,19 +183,19 @@ abstract class ScanResultsStorage {
         // Do not store scan results without provenance information, because they cannot be assigned to the revision of
         // the package source code later.
         if (scanResult.provenance.sourceArtifact == null && scanResult.provenance.vcsInfo == null) {
-            val message =
-                "Not storing scan result for '${id.toCoordinates()}' because no provenance information is available."
+            val message = "Not storing scan result for '${scanResult.provenance.description}' because no " +
+                    "provenance information is available."
             log.info { message }
 
             return AddResult(false, message)
         }
 
-        return addToStorage(id, scanResult)
+        return addToStorage(scanResult)
     }
 
-    protected abstract fun readFromStorage(id: Identifier): ScanResultContainer
+    protected abstract fun readFromStorage(pkg: Package): ScanResultContainer
 
     protected abstract fun readFromStorage(pkg: Package, scannerDetails: ScannerDetails): ScanResultContainer
 
-    protected abstract fun addToStorage(id: Identifier, scanResult: ScanResult): AddResult
+    protected abstract fun addToStorage(scanResult: ScanResult): AddResult
 }

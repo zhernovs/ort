@@ -22,14 +22,16 @@ package com.here.ort.scanner.storages
 
 import com.fasterxml.jackson.module.kotlin.readValue
 
-import com.here.ort.model.Identifier
 import com.here.ort.model.Package
+import com.here.ort.model.RemoteArtifact
 import com.here.ort.model.ScanResult
 import com.here.ort.model.ScanResultContainer
 import com.here.ort.model.ScannerDetails
+import com.here.ort.model.VcsInfo
 import com.here.ort.model.yamlMapper
 import com.here.ort.scanner.ScanResultsStorage
 import com.here.ort.utils.collectMessagesAsString
+import com.here.ort.utils.fileSystemEncode
 import com.here.ort.utils.log
 import com.here.ort.utils.storage.FileStorage
 
@@ -47,31 +49,22 @@ class FileBasedStorage(
      */
     private val backend: FileStorage
 ) : ScanResultsStorage() {
-    override fun readFromStorage(id: Identifier): ScanResultContainer {
-        val path = storagePath(id)
+    override fun readFromStorage(pkg: Package): ScanResultContainer {
+        val results = mutableListOf<ScanResult>()
 
-        @Suppress("TooGenericExceptionCaught")
-        return try {
-            backend.read(path).use { input ->
-                yamlMapper.readValue(input)
-            }
-        } catch (e: Exception) {
-            when (e) {
-                is java.lang.IllegalArgumentException, is IOException -> {
-                    log.info {
-                        "Could not read scan results for '${id.toCoordinates()}' from path '$path': " +
-                                e.collectMessagesAsString()
-                    }
-
-                    ScanResultContainer(id, emptyList())
-                }
-                else -> throw e
-            }
+        if (pkg.sourceArtifact.url.isNotBlank()) {
+            results += readFromBackend(storagePath(pkg.sourceArtifact))
         }
+
+        if (pkg.vcsProcessed.url.isNotBlank()) {
+            results += readFromBackend(storagePath(pkg.vcsProcessed))
+        }
+
+        return ScanResultContainer(pkg.id, results)
     }
 
     override fun readFromStorage(pkg: Package, scannerDetails: ScannerDetails): ScanResultContainer {
-        val scanResults = read(pkg.id).results.toMutableList()
+        val scanResults = read(pkg).results.toMutableList()
 
         if (scanResults.isEmpty()) return ScanResultContainer(pkg.id, scanResults)
 
@@ -103,7 +96,7 @@ class FileBasedStorage(
         return ScanResultContainer(pkg.id, scanResults)
     }
 
-    override fun addToStorage(id: Identifier, scanResult: ScanResult): AddResult {
+    override fun addToStorage(scanResult: ScanResult): AddResult {
         val scanResults = ScanResultContainer(id, read(id).results + scanResult)
 
         val path = storagePath(id)
@@ -131,5 +124,26 @@ class FileBasedStorage(
         }
     }
 
-    private fun storagePath(id: Identifier) = "${id.toPath()}/$SCAN_RESULTS_FILE_NAME"
+    private fun readFromBackend(path: String): List<ScanResult> {
+        @Suppress("TooGenericExceptionCaught")
+        return try {
+            backend.read(path).use { input ->
+                yamlMapper.readValue<ScanResultContainer>(input).results
+            }
+        } catch (e: Exception) {
+            when (e) {
+                is java.lang.IllegalArgumentException, is IOException -> {
+                    log.info { "Could not read scan results from path '$path': ${e.collectMessagesAsString()}" }
+                    emptyList()
+                }
+                else -> throw e
+            }
+        }
+    }
+
+    private fun storagePath(sourceArtifact: RemoteArtifact) =
+        "scan-results/source-artifacts/${sourceArtifact.url.fileSystemEncode()}/$SCAN_RESULTS_FILE_NAME"
+
+    private fun storagePath(vcsInfo: VcsInfo) =
+        "scan-results/repositories/${vcsInfo.url.fileSystemEncode()}/$SCAN_RESULTS_FILE_NAME"
 }
