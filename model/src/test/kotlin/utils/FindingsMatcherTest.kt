@@ -120,7 +120,7 @@ class FindingsMatcherTest : WordSpec() {
 
         "Given a file with multiple license findings and 6 copyrights above one of them, match" should {
             "associate all except the top copyright finding" {
-                // TODO: change the behavior of the algorithm so that also the top most copyright is matched
+                setupLicenseFinding(license = "license nearby", path = "some/file", line = 16 + DEFAULT_TOLERANCE_LINES)
                 setupLicenseFinding(license = "license nearby", path = "some/file", line = 16)
                 setupLicenseFinding(license = "license far away", path = "some/file", line = 1000)
                 setupCopyrightFinding(statement = "stmt 1", path = "some/file", line = 10)

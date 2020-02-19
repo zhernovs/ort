@@ -26,7 +26,7 @@ import com.here.ort.model.LicenseFindings
 import com.here.ort.model.TextLocation
 import com.here.ort.utils.FileMatcher
 
-import kotlin.math.absoluteValue
+private fun CopyrightFinding.line(): Int = location.startLine
 
 private fun Collection<CopyrightFinding>.toCopyrightFindings(): List<CopyrightFindings> {
     val locationsByStatement = mutableMapOf<String, MutableSet<TextLocation>>()
@@ -54,7 +54,7 @@ class FindingsMatcher(
          * The default value of 5 seems to be a good balance between associating findings separated by blank lines but
          * not skipping complete license statements.
          */
-        const val DEFAULT_TOLERANCE_LINES = 5
+        const val DEFAULT_TOLERANCE_LINES = 2
     }
 
     /**
@@ -71,18 +71,27 @@ class FindingsMatcher(
      * [toleranceLines].
      */
     private fun getClosestCopyrightStatements(
-        copyrights: List<CopyrightFinding>,
-        licenseStartLine: Int
+        copyrights: Collection<CopyrightFinding>,
+        licenseStartLine: Int,
+        licenseEndLine: Int
     ): Set<CopyrightFinding> {
         require(copyrights.map { it.location.path }.distinct().size <= 1) {
             "Given copyright statements must all point to the same file."
         }
 
-        val closestCopyrights = copyrights.filter {
-            (it.location.startLine - licenseStartLine).absoluteValue <= toleranceLines
+        val descendingCopyrightLinesAboveStartLine = copyrights
+            .map { copyrightFinding -> copyrightFinding.line() }
+            .filter { line -> line in (0 until licenseStartLine - 1) }
+            .sortedDescending()
+
+        // Expand the range by moving the startLine upwards.
+        var startLine = licenseStartLine
+        descendingCopyrightLinesAboveStartLine.forEach { line ->
+            if (startLine - line <= toleranceLines) startLine = line
+            else return@forEach
         }
 
-        return closestCopyrights.toSet()
+        return copyrights.filterTo(mutableSetOf()) { it.line() in (startLine until licenseEndLine) }
     }
 
     /**
@@ -107,7 +116,7 @@ class FindingsMatcher(
         // for each of these, if any.
         val result = mutableMapOf<String, MutableSet<CopyrightFinding>>()
         licenses.forEach { (license, location) ->
-            val closestCopyrights = getClosestCopyrightStatements(copyrights, location.startLine)
+            val closestCopyrights = getClosestCopyrightStatements(copyrights, location.startLine, location.endLine)
             result.getOrPut(license) { mutableSetOf() } += closestCopyrights
         }
 
