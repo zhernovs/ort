@@ -26,23 +26,49 @@ import com.beust.jcommander.Parameters
 import com.here.ort.helper.CommandWithHelp
 import com.here.ort.model.Identifier
 import com.here.ort.model.OrtResult
+import com.here.ort.model.Provenance
+import com.here.ort.model.RemoteArtifact
+import com.here.ort.model.VcsInfo
 import com.here.ort.model.readValue
+import com.here.ort.model.yamlMapper
 import com.here.ort.utils.PARAMETER_ORDER_MANDATORY
 
 import java.io.File
 
 private data class PackageModel(
     val id: Identifier,
-    val detectedLicenses: Set<String>
+    val detectedLicenses: Set<String>,
+    val scannedVcs: VcsInfo?,
+    val scannedSourceArtifact: RemoteArtifact?
 )
+
+private fun PackageModel.format(showDetails: Boolean): String {
+    fun VcsInfo?.format(): String = this?.let { "url=$url, path=$path, revision=$revision" }.orEmpty()
+    fun RemoteArtifact?.format(): String = this?.let { "url=$url, hash=$hash" }.orEmpty()
+
+    return buildString {
+        appendln("id: ${id.toCoordinates()}")
+
+        if (!showDetails) return@buildString
+
+        appendln("detected-licenses: ${detectedLicenses.joinToString()}")
+        appendln("vcs: ${scannedVcs.format()}")
+        appendln("source-artifact: ${scannedSourceArtifact.format()}")
+    }
+}
 
 private fun OrtResult.listPackages(): List<PackageModel> =
     getProjectAndPackageIds().map { getPackageModel(it) }
 
-private fun OrtResult.getPackageModel(id: Identifier) = PackageModel(
-    id = id,
-    detectedLicenses = getDetectedLicensesForId(id).toSet()
-)
+private fun OrtResult.getPackageModel(id: Identifier): PackageModel {
+    val scanResultProvenance = getScanResultsForId(id).firstOrNull()
+    return PackageModel(
+        id = id,
+        detectedLicenses = getDetectedLicensesForId(id).toSet(),
+        scannedVcs = scanResultProvenance?.provenance?.vcsInfo,
+        scannedSourceArtifact = scanResultProvenance?.provenance?.sourceArtifact
+    )
+}
 
 @Parameters(
     commandNames = ["list-packages"],
@@ -65,6 +91,14 @@ class ListPackagesCommand : CommandWithHelp() {
     )
     private var matchDetectedLicenses: List<String> = emptyList()
 
+    @Parameter(
+        names = ["--show-details"],
+        required = false,
+        order = PARAMETER_ORDER_MANDATORY,
+        description = "Show meta data of the package."
+    )
+    private var showDetails: Boolean = true
+
     override fun runCommand(jc: JCommander): Int {
         val ortResult = ortResultFile.readValue<OrtResult>()
 
@@ -74,8 +108,9 @@ class ListPackagesCommand : CommandWithHelp() {
             .sortedBy { it.id }
 
         val result = buildString {
-            packageEntries.forEach {
-                appendln(it.id.toCoordinates())
+            packageEntries.forEachIndexed { i, pkg ->
+                appendln("$i:")
+                appendln(pkg.format(showDetails).prependIndent("  "))
             }
         }
         println(result)
@@ -83,3 +118,4 @@ class ListPackagesCommand : CommandWithHelp() {
         return 0
     }
 }
+
