@@ -24,11 +24,25 @@ import com.beust.jcommander.Parameter
 import com.beust.jcommander.Parameters
 
 import com.here.ort.helper.CommandWithHelp
+import com.here.ort.model.Identifier
 import com.here.ort.model.OrtResult
 import com.here.ort.model.readValue
 import com.here.ort.utils.PARAMETER_ORDER_MANDATORY
 
 import java.io.File
+
+private data class PackageModel(
+    val id: Identifier,
+    val detectedLicenses: Set<String>
+)
+
+private fun OrtResult.listPackages(): List<PackageModel> =
+    getProjectAndPackageIds().map { getPackageModel(it) }
+
+private fun OrtResult.getPackageModel(id: Identifier) = PackageModel(
+    id = id,
+    detectedLicenses = getDetectedLicensesForId(id).toSet()
+)
 
 @Parameters(
     commandNames = ["list-packages"],
@@ -54,17 +68,14 @@ class ListPackagesCommand : CommandWithHelp() {
     override fun runCommand(jc: JCommander): Int {
         val ortResult = ortResultFile.readValue<OrtResult>()
 
-        val packages = ortResult
-            .collectProjectsAndPackages()
-            .filter {
-                matchDetectedLicenses.isEmpty()
-                        || (matchDetectedLicenses - ortResult.getDetectedLicensesForId(it)).isEmpty()
-            }
-            .sortedBy { it }
+        val packageEntries = ortResult
+            .listPackages()
+            .filter { matchDetectedLicenses.isEmpty() || (matchDetectedLicenses - it.detectedLicenses).isEmpty() }
+            .sortedBy { it.id }
 
         val result = buildString {
-            packages.forEach {
-                appendln(it.toCoordinates())
+            packageEntries.forEach {
+                appendln(it.id.toCoordinates())
             }
         }
         println(result)
