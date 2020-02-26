@@ -26,11 +26,13 @@ import com.beust.jcommander.Parameters
 import com.here.ort.helper.CommandWithHelp
 import com.here.ort.helper.common.IdentifierConverter
 import com.here.ort.helper.common.processAllCopyrightStatements
+import com.here.ort.model.CopyrightFinding
 import com.here.ort.model.Identifier
 import com.here.ort.model.OrtResult
 import com.here.ort.model.config.CopyrightGarbage
 import com.here.ort.model.config.orEmpty
 import com.here.ort.model.readValue
+import com.here.ort.model.utils.FindingsMatcher
 import com.here.ort.utils.PARAMETER_ORDER_MANDATORY
 import com.here.ort.utils.PARAMETER_ORDER_OPTIONAL
 import com.here.ort.utils.expandTilde
@@ -90,6 +92,18 @@ internal class ListCopyrightsCommand : CommandWithHelp() {
             .groupBy({ it.statement }, { it.rawStatements })
             .mapValues { it.value.flatten().toSortedSet() }
 
+        val unmatchedFindings = mutableSetOf<CopyrightFinding>()
+
+        ortResult.scanner?.results?.scanResults?.forEach { scanResultContainer ->
+            if (scanResultContainer.id == packageId || packageId == null) {
+                scanResultContainer.results.forEach { scanResult ->
+                    val m = FindingsMatcher()
+                    m.match(scanResult.summary.licenseFindings, scanResult.summary.copyrightFindings)
+                    unmatchedFindings.addAll(m.unmatchedFindings)
+                }
+            }
+        }
+
         val result = buildString {
             copyrightStatements.forEach { (processedStatement, unprocessedStatements) ->
                 appendln(processedStatement)
@@ -98,6 +112,11 @@ internal class ListCopyrightsCommand : CommandWithHelp() {
                         appendln("  $it")
                     }
                 }
+            }
+            val x = unmatchedFindings.map { it.statement }.distinct()
+            appendln("unmatched: " + x.size)
+            x.forEach {
+                appendln(" -" + it)
             }
         }
 

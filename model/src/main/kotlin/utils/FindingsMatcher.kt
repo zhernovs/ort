@@ -114,6 +114,8 @@ class FindingsMatcher(
         return result
     }
 
+    val unmatchedFindings = mutableSetOf<CopyrightFinding>()
+
     /**
      * Return an association of the given [copyrightFindings] to [licenseFindings].
      * Copyright findings are either matched to a license finding located nearby in the same file or to a license
@@ -127,6 +129,7 @@ class FindingsMatcher(
         val copyrightFindingsByPath = copyrightFindings.groupBy { it.location.path }
         val paths = (licenseFindingsByPath.keys + copyrightFindingsByPath.keys).toSet()
         val rootLicenses = getRootLicenses(licenseFindings)
+        unmatchedFindings.clear()
 
         val locationsByLicense = licenseFindings
             .groupBy({ it.license }, { it.location })
@@ -138,6 +141,7 @@ class FindingsMatcher(
             val licenses = licenseFindingsByPath[path].orEmpty()
             val copyrights = copyrightFindingsByPath[path].orEmpty()
             val findings = matchFileFindings(licenses, copyrights, rootLicenses)
+            unmatchedFindings.addAll(copyrights.toSet() - findings.values.flatten().toSet())
 
             findings.forEach { (license, copyrightFindings) ->
                 copyrightsByLicense.getOrPut(license) { mutableSetOf() } += copyrightFindings
