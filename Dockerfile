@@ -15,6 +15,7 @@
 # SPDX-License-Identifier: Apache-2.0
 # License-Filename: LICENSE
 
+# syntax = docker/dockerfile:1.1-experimental
 FROM frolvlad/alpine-java:jdk8-slim AS build
 
 COPY . /usr/local/src/ort
