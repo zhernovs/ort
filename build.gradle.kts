@@ -131,7 +131,7 @@ allprojects {
 }
 
 subprojects {
-    if (name == "reporter-web-app") return@subprojects
+    if (name in listOf("reporter-web-app", "web")) return@subprojects
 
     // Apply core plugins.
     apply(plugin = "jacoco")

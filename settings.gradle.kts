@@ -58,6 +58,7 @@ include("scanner")
 include("spdx-utils")
 include("test-utils")
 include("utils")
+include("web")
 
 val buildCacheRetentionDays: String by settings
 
