@@ -39,6 +39,12 @@ import io.ktor.server.engine.embeddedServer
 import io.ktor.server.netty.Netty
 
 import org.jetbrains.exposed.sql.Database
+import org.jetbrains.exposed.sql.SchemaUtils
+import org.jetbrains.exposed.sql.SchemaUtils.withDataBaseLock
+import org.jetbrains.exposed.sql.transactions.transaction
+
+import org.ossreviewtoolkit.web.jvm.dao.OrtProjects
+
 import org.slf4j.event.Level
 
 fun main() {
@@ -49,6 +55,14 @@ fun main() {
         user = "postgres",
         password = "test"
     )
+
+    transaction {
+        withDataBaseLock {
+            SchemaUtils.createMissingTablesAndColumns(
+                OrtProjects
+            )
+        }
+    }
 
     embeddedServer(Netty, 8080, watchPaths = listOf("ApplicationKt"), module = Application::module).start()
 }
