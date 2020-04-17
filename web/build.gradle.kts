@@ -17,6 +17,7 @@
  * License-Filename: LICENSE
  */
 
+val exposedVersion: String by project
 val log4jCoreVersion: String by project
 val kotlinReactVersion: String by project
 val kotlinStyledVersion: String by project
@@ -28,6 +29,7 @@ val npmFsVersion: String by project
 val npmReactVersion: String by project
 val npmInlineStylePrefixerVersion: String by project
 val npmStyledComponentsVersion: String by project
+val postgresVersion: String by project
 
 plugins {
     kotlin("multiplatform")
@@ -95,6 +97,11 @@ kotlin {
                 implementation("com.github.lamba92:ktor-spa:$ktorSpaVersion")
                 implementation("io.ktor:ktor-server-netty:$ktorVersion")
                 implementation("org.apache.logging.log4j:log4j-slf4j-impl:$log4jCoreVersion")
+                implementation("org.jetbrains.exposed:exposed-core:$exposedVersion")
+                implementation("org.jetbrains.exposed:exposed-dao:$exposedVersion")
+                implementation("org.jetbrains.exposed:exposed-jdbc:$exposedVersion")
+                implementation("org.jetbrains.exposed:exposed-java-time:$exposedVersion")
+                implementation("org.postgresql:postgresql:$postgresVersion")
             }
 
             // Add the react app to the classpath.

@@ -38,9 +38,18 @@ import io.ktor.routing.routing
 import io.ktor.server.engine.embeddedServer
 import io.ktor.server.netty.Netty
 
+import org.jetbrains.exposed.sql.Database
 import org.slf4j.event.Level
 
 fun main() {
+    // TODO: Read the database connection properties from the configuration file.
+    Database.connect(
+        "jdbc:postgresql://localhost:5432/postgres",
+        driver = "org.postgresql.Driver",
+        user = "postgres",
+        password = "test"
+    )
+
     embeddedServer(Netty, 8080, watchPaths = listOf("ApplicationKt"), module = Application::module).start()
 }
 
