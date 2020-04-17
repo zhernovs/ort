@@ -44,6 +44,7 @@ import org.jetbrains.exposed.sql.SchemaUtils.withDataBaseLock
 import org.jetbrains.exposed.sql.transactions.transaction
 
 import org.ossreviewtoolkit.web.jvm.dao.OrtProjects
+import org.ossreviewtoolkit.web.jvm.util.createSampleData
 
 import org.slf4j.event.Level
 
@@ -61,6 +62,8 @@ fun main() {
             SchemaUtils.createMissingTablesAndColumns(
                 OrtProjects
             )
+
+            createSampleData()
         }
     }
 
