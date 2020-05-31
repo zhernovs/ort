@@ -19,7 +19,11 @@
 
 package org.ossreviewtoolkit.web.js.components
 
+import kotlinx.coroutines.MainScope
+import kotlinx.coroutines.launch
+
 import org.ossreviewtoolkit.web.common.OrtProject
+import org.ossreviewtoolkit.web.js.Api
 
 import react.RBuilder
 import react.RComponent
@@ -27,27 +31,44 @@ import react.RProps
 import react.RState
 import react.ReactElement
 import react.dom.*
+import react.setState
 
 import styled.*
 
 interface OrtProjectListPageProps : RProps
 
 interface OrtProjectListPageState : RState {
+    var isUpdating: Boolean
     var ortProjects: List<OrtProject>
 }
 
 class OrtProjectListPage(props: OrtProjectListPageProps) :
     RComponent<OrtProjectListPageProps, OrtProjectListPageState>(props) {
     override fun OrtProjectListPageState.init(props: OrtProjectListPageProps) {
+        isUpdating = true
         ortProjects = listOf()
+
+        updateOrtProjects()
     }
 
     override fun RBuilder.render() {
         div {
             styledH1 { +"ORT Projects" }
 
-            ortProjectTable {
-                ortProjects = state.ortProjects
+            when {
+                state.isUpdating -> div("loader") {}
+                state.ortProjects.isEmpty() -> styledH2 { +"No projects found." }
+                else -> ortProjectTable { ortProjects = state.ortProjects }
+            }
+        }
+    }
+
+    private fun updateOrtProjects() {
+        MainScope().launch {
+            val fetchedOrtProjects = Api.fetchOrtProjects()
+            setState {
+                isUpdating = false
+                ortProjects = fetchedOrtProjects
             }
         }
     }

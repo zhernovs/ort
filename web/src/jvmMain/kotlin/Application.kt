@@ -25,6 +25,7 @@ import io.ktor.application.Application
 import io.ktor.application.call
 import io.ktor.application.install
 import io.ktor.features.CallLogging
+import io.ktor.features.ContentNegotiation
 import io.ktor.features.DefaultHeaders
 import io.ktor.features.StatusPages
 import io.ktor.http.HttpStatusCode
@@ -35,6 +36,7 @@ import io.ktor.response.respond
 import io.ktor.response.respondRedirect
 import io.ktor.routing.get
 import io.ktor.routing.routing
+import io.ktor.serialization.json
 import io.ktor.server.engine.embeddedServer
 import io.ktor.server.netty.Netty
 
@@ -43,6 +45,7 @@ import org.jetbrains.exposed.sql.SchemaUtils
 import org.jetbrains.exposed.sql.SchemaUtils.withDataBaseLock
 import org.jetbrains.exposed.sql.transactions.transaction
 
+import org.ossreviewtoolkit.web.jvm.dao.OrtProjectDao
 import org.ossreviewtoolkit.web.jvm.dao.OrtProjects
 import org.ossreviewtoolkit.web.jvm.util.createSampleData
 
@@ -77,6 +80,10 @@ fun Application.module() {
         level = Level.INFO
     }
 
+    install(ContentNegotiation) {
+        json()
+    }
+
     install(StatusPages) {
         exception<Throwable> { cause ->
             call.respond(HttpStatusCode.InternalServerError)
@@ -94,6 +101,12 @@ fun Application.module() {
     routing {
         get("/") {
             call.respondRedirect("/main")
+        }
+
+        get("/api/ortProjects") {
+            val ortProjects = transaction { OrtProjectDao.all().map { it.detached() } }
+
+            call.respond(ortProjects)
         }
 
         static("/static") {

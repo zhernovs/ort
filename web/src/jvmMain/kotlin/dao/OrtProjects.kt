@@ -25,6 +25,8 @@ import org.jetbrains.exposed.dao.id.EntityID
 import org.jetbrains.exposed.dao.id.IntIdTable
 import org.jetbrains.exposed.sql.Column
 
+import org.ossreviewtoolkit.web.common.OrtProject
+
 object OrtProjects : IntIdTable() {
     val name: Column<String> = text("name")
     val type: Column<String> = text("type")
@@ -39,4 +41,6 @@ class OrtProjectDao(id: EntityID<Int>) : IntEntity(id) {
     var type by OrtProjects.type
     var url by OrtProjects.url
     var path by OrtProjects.path
+
+    fun detached(): OrtProject = OrtProject(id.value, name, type, url, path)
 }

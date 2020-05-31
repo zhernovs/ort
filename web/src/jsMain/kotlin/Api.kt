@@ -17,15 +17,24 @@
  * License-Filename: LICENSE
  */
 
-package org.ossreviewtoolkit.web.common
+package org.ossreviewtoolkit.web.js
 
-import kotlinx.serialization.Serializable
+import io.ktor.client.HttpClient
+import io.ktor.client.features.json.JsonFeature
+import io.ktor.client.features.json.serializer.KotlinxSerializer
+import io.ktor.client.request.get
 
-@Serializable
-data class OrtProject(
-    val id: Int,
-    val name: String,
-    val type: String,
-    val url: String,
-    val path: String = ""
-)
+import org.ossreviewtoolkit.web.common.OrtProject
+
+object Api {
+    // TODO: Use actual server URL instead of hardcoded localhost.
+    private val API_URL = "http://localhost:8080/api"
+
+    private val CLIENT = HttpClient {
+        install(JsonFeature) {
+            serializer = KotlinxSerializer()
+        }
+    }
+
+    suspend fun fetchOrtProjects(): List<OrtProject> = CLIENT.get("$API_URL/ortProjects")
+}
