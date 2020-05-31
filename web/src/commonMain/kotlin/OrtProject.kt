@@ -17,28 +17,12 @@
  * License-Filename: LICENSE
  */
 
-package org.ossreviewtoolkit.web.js
+package org.ossreviewtoolkit.web.common
 
-import org.ossreviewtoolkit.web.js.components.ortProjectListPage
-import react.RBuilder
-import react.RComponent
-import react.RProps
-import react.RState
-import react.router.dom.browserRouter
-import react.router.dom.route
-import react.router.dom.switch
-import styled.styledImg
-
-class ReactApp : RComponent<RProps, RState>() {
-    override fun RBuilder.render() {
-        browserRouter {
-            styledImg(alt = "OSS Review Toolkit", src = "/static/ort.png") {}
-
-            switch {
-                route("/main", exact = true) {
-                    ortProjectListPage {}
-                }
-            }
-        }
-    }
-}
+data class OrtProject(
+    val id: Int,
+    val name: String,
+    val type: String,
+    val url: String,
+    val path: String = ""
+)
