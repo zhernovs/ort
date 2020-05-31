@@ -20,6 +20,7 @@
 val exposedVersion: String by project
 val log4jCoreVersion: String by project
 val kotlinReactVersion: String by project
+val kotlinReactRouterVersion: String by project
 val kotlinStyledVersion: String by project
 val ktorSpaVersion: String by project
 val ktorVersion: String by project
@@ -27,6 +28,7 @@ val npmAbortControllerVersion: String by project
 val npmBufferutilVersion: String by project
 val npmFsVersion: String by project
 val npmReactVersion: String by project
+val npmReactRouterVersion: String by project
 val npmInlineStylePrefixerVersion: String by project
 val npmStyledComponentsVersion: String by project
 val postgresVersion: String by project
@@ -81,11 +83,13 @@ kotlin {
                 implementation("org.jetbrains:kotlin-styled:$kotlinStyledVersion")
                 implementation("org.jetbrains:kotlin-react:$kotlinReactVersion")
                 implementation("org.jetbrains:kotlin-react-dom:$kotlinReactVersion")
+                implementation("org.jetbrains:kotlin-react-router-dom:$kotlinReactRouterVersion")
 
                 implementation(npm("fs", npmFsVersion))
                 implementation(npm("inline-style-prefixer", npmInlineStylePrefixerVersion))
                 implementation(npm("react", npmReactVersion))
                 implementation(npm("react-dom", npmReactVersion))
+                implementation(npm("react-router-dom", npmReactRouterVersion))
                 implementation(npm("styled-components", npmStyledComponentsVersion))
             }
         }

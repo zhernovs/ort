@@ -21,12 +21,15 @@ package org.ossreviewtoolkit.web.js
 
 import react.*
 import react.dom.*
+import react.router.dom.browserRouter
 
 import styled.*
 
 class ReactApp : RComponent<RProps, RState>() {
     override fun RBuilder.render() {
-        styledImg(alt = "OSS Review Toolkit", src = "/static/ort.png") {}
-        h1 { +"Hello World!" }
+        browserRouter {
+            styledImg(alt = "OSS Review Toolkit", src = "/static/ort.png") {}
+            h1 { +"Hello World!" }
+        }
     }
 }
