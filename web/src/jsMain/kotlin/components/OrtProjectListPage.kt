@@ -21,6 +21,8 @@ package org.ossreviewtoolkit.web.js.components
 
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.launch
+import kotlinx.html.ButtonType
+import kotlinx.html.js.onClickFunction
 
 import org.ossreviewtoolkit.web.common.OrtProject
 import org.ossreviewtoolkit.web.js.Api
@@ -40,6 +42,7 @@ interface OrtProjectListPageProps : RProps
 interface OrtProjectListPageState : RState {
     var isUpdating: Boolean
     var ortProjects: List<OrtProject>
+    var showForm: Boolean
 }
 
 class OrtProjectListPage(props: OrtProjectListPageProps) :
@@ -47,6 +50,7 @@ class OrtProjectListPage(props: OrtProjectListPageProps) :
     override fun OrtProjectListPageState.init(props: OrtProjectListPageProps) {
         isUpdating = true
         ortProjects = listOf()
+        showForm = false
 
         updateOrtProjects()
     }
@@ -55,10 +59,24 @@ class OrtProjectListPage(props: OrtProjectListPageProps) :
         div {
             styledH1 { +"ORT Projects" }
 
+            button(type = ButtonType.button) {
+                attrs {
+                    onClickFunction = { setState { showForm = true } }
+                }
+
+                +"Create ORT Project"
+            }
+
             when {
                 state.isUpdating -> div("loader") {}
                 state.ortProjects.isEmpty() -> styledH2 { +"No projects found." }
                 else -> ortProjectTable { ortProjects = state.ortProjects }
+            }
+
+            if (state.showForm) {
+                ortProjectForm {
+                    onSubmit = ::createOrtProject
+                }
             }
         }
     }
@@ -69,6 +87,18 @@ class OrtProjectListPage(props: OrtProjectListPageProps) :
             setState {
                 isUpdating = false
                 ortProjects = fetchedOrtProjects
+            }
+        }
+    }
+
+    private fun createOrtProject(ortProject: OrtProject?) {
+        setState { showForm = false }
+        MainScope().launch {
+            if (ortProject != null) {
+                val result = Api.createOrtProject(ortProject)
+                // TODO: Properly show result.
+                console.log(result.message)
+                updateOrtProjects()
             }
         }
     }

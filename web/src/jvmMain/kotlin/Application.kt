@@ -32,9 +32,11 @@ import io.ktor.http.HttpStatusCode
 import io.ktor.http.content.resource
 import io.ktor.http.content.resources
 import io.ktor.http.content.static
+import io.ktor.request.receive
 import io.ktor.response.respond
 import io.ktor.response.respondRedirect
 import io.ktor.routing.get
+import io.ktor.routing.post
 import io.ktor.routing.routing
 import io.ktor.serialization.json
 import io.ktor.server.engine.embeddedServer
@@ -48,6 +50,8 @@ import org.jetbrains.exposed.sql.transactions.transaction
 import org.ossreviewtoolkit.model.config.OrtConfiguration
 import org.ossreviewtoolkit.utils.ORT_FULL_NAME
 import org.ossreviewtoolkit.utils.getOrtDataDirectory
+import org.ossreviewtoolkit.web.common.ApiResult
+import org.ossreviewtoolkit.web.common.OrtProject
 import org.ossreviewtoolkit.web.jvm.dao.OrtProjectDao
 import org.ossreviewtoolkit.web.jvm.dao.OrtProjects
 import org.ossreviewtoolkit.web.jvm.util.createSampleData
@@ -124,6 +128,31 @@ fun Application.module() {
             val ortProjects = transaction { OrtProjectDao.all().map { it.detached() } }
 
             call.respond(ortProjects)
+        }
+
+        post("/api/ortProjects") {
+            try {
+                val ortProject = call.receive<OrtProject>()
+
+                transaction {
+                    OrtProjectDao.new {
+                        name = ortProject.name
+                        type = ortProject.type
+                        url = ortProject.url
+                        path = ortProject.path
+                    }
+                }
+
+                call.respond(
+                    HttpStatusCode.Created,
+                    ApiResult(true, "Created ORT project: ${ortProject.name}")
+                )
+            } catch (e: Exception) {
+                call.respond(
+                    HttpStatusCode.NotAcceptable,
+                    ApiResult(false, "Could not create ORT project: ${e.message}")
+                )
+            }
         }
 
         static("/static") {

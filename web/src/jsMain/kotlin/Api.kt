@@ -23,7 +23,12 @@ import io.ktor.client.HttpClient
 import io.ktor.client.features.json.JsonFeature
 import io.ktor.client.features.json.serializer.KotlinxSerializer
 import io.ktor.client.request.get
+import io.ktor.client.request.header
+import io.ktor.client.request.post
+import io.ktor.http.ContentType
+import io.ktor.http.HttpHeaders
 
+import org.ossreviewtoolkit.web.common.ApiResult
 import org.ossreviewtoolkit.web.common.OrtProject
 
 object Api {
@@ -37,4 +42,10 @@ object Api {
     }
 
     suspend fun fetchOrtProjects(): List<OrtProject> = CLIENT.get("$API_URL/ortProjects")
+
+    suspend fun createOrtProject(ortProject: OrtProject): ApiResult =
+        CLIENT.post("$API_URL/ortProjects") {
+            header(HttpHeaders.ContentType, ContentType.Application.Json)
+            body = ortProject
+        }
 }
