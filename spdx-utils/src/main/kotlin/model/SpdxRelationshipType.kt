@@ -29,14 +29,14 @@ import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlRootElement
 )
 enum class SpdxRelationshipType {
     /**
-     * Use when SPDX element A is an ancestor of SPDX element B (same lineage but pre-dates).
-     */
-    ANCESTOR_OF,
-
-    /**
      * Use when SPDX element A amends the SPDX information in SPDX element B.
      */
     AMENDS,
+
+    /**
+     * Use when SPDX element A is an ancestor of SPDX element B (same lineage but pre-dates).
+     */
+    ANCESTOR_OF,
 
     /**
      * Use when SPDX element A is used to build SPDX element B.
@@ -71,14 +71,14 @@ enum class SpdxRelationshipType {
     DESCENDANT_OF,
 
     /**
-     * Use when SPDX document A describes to SPDX element B.
-     */
-    DESCRIBES,
-
-    /**
      * Use when SPDX file A is described by SPDX document B.
      */
     DESCRIBED_BY,
+
+    /**
+     * Use when SPDX document A describes to SPDX element B.
+     */
+    DESCRIBES,
 
     /**
      * Use when distributing SPDX element A requires also distributing SPDX element B.
@@ -152,7 +152,7 @@ enum class SpdxRelationshipType {
     PACKAGE_OF,
 
     /**
-     * Use when SPDX element A is 'patchfile' thay was applied and produced SPDX element B.
+     * Use when SPDX element A is 'patchfile' that was applied and produced SPDX element B.
      */
     PATCH_APPLIED,
 

@@ -38,8 +38,7 @@ data class SpdxRelationship(
     @JacksonXmlProperty(
         localName = "spdx:comment"
     )
-    @JsonInclude(JsonInclude.Include.NON_NULL)
-    val comment: String? = null,
+    val comment: String = "",
 
     /**
      * Type of the [SpdxRelationship]
@@ -62,8 +61,5 @@ data class SpdxRelationship(
 
     ) : Comparable<SpdxRelationship> {
 
-    /**
-     * A comparison function to sort [SpdxRelationship]s.
-     */
     override fun compareTo(other: SpdxRelationship) = type.compareTo(other.type)
 }

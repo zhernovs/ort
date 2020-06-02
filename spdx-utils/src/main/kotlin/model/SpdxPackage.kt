@@ -113,7 +113,7 @@ data class SpdxPackage(
         localName = "spdx:filesAnalyzed"
     )
     @JsonInclude(JsonInclude.Include.NON_NULL)
-    val filesAnalyzed: Boolean = true
+    val filesAnalyzed: Boolean = true // TODO: this one is optional. What is the default value by spec?
 
     ) : Comparable<SpdxPackage> {
     companion object {

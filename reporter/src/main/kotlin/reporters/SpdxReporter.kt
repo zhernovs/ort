@@ -37,7 +37,7 @@ import java.security.MessageDigest
  * TODO
  */
 abstract class SpdxReporter(val mapper: ObjectMapper) : Reporter {
-    override fun generateReport(outputStream: OutputStream, input: ReporterInput) {
+    override fun generateReport(outputStream: OutputStream, input: ReporterInput, options: Map<String, String>) {
         val licenseFindings = input.ortResult.collectLicenseFindings()
 
         val packages = mutableListOf<SpdxPackage>()
