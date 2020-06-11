@@ -20,8 +20,18 @@
 package org.ossreviewtoolkit.utils
 
 import io.kotest.core.spec.style.WordSpec
+import io.kotest.extensions.system.captureStandardErr
+import io.kotest.matchers.shouldBe
 import io.kotest.matchers.types.shouldBeSameInstanceAs
 import io.kotest.matchers.types.shouldNotBeSameInstanceAs
+
+import io.mockk.mockkStatic
+import io.mockk.spyk
+import io.mockk.verify
+
+import org.apache.logging.log4j.Level
+
+class Dummy
 
 class LoggerTest : WordSpec({
     "A logger instance" should {
@@ -37,6 +47,39 @@ class LoggerTest : WordSpec({
             val b = this.log
 
             a shouldNotBeSameInstanceAs b
+        }
+    }
+
+    "Asking to log a statement only once" should {
+        mockkStatic("org.ossreviewtoolkit.utils.LoggerKt")
+
+        "show the message only once for the same instance and level" {
+            val message = "This message should be logged only once."
+
+            val stringLog = spyk<Dummy>()
+
+            stringLog.logOnce(Level.WARN) { message }
+
+            // This runs into a stack overflow.
+            verify(exactly = 1) { stringLog.log.log(Level.WARN, message) }
+        }
+
+        "still show the message multiple times for different instances or levels" {
+            val a = String()
+            val message = "This message should be logged multiple times."
+
+            val outputDifferentInstanceSameLevel = captureStandardErr {
+                String().logOnce(Level.INFO) { message }
+                String().logOnce(Level.INFO) { message }
+            }.lines()
+
+            val outputSameInstanceDifferentLevel = captureStandardErr {
+                a.logOnce(Level.INFO) { message }
+                a.logOnce(Level.WARN) { message }
+            }.lines()
+
+            outputDifferentInstanceSameLevel.filter { it == message }.size shouldBe 2
+            outputSameInstanceDifferentLevel.filter { it == message }.size shouldBe 2
         }
     }
 })

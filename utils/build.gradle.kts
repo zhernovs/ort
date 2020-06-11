@@ -22,6 +22,7 @@ val commonsCompressVersion: String by project
 val disklrucacheVersion: String by project
 val jacksonVersion: String by project
 val log4jApiKotlinVersion: String by project
+val mockkVersion: String by project
 val okhttpVersion: String by project
 val semverVersion: String by project
 val xzVersion: String by project
@@ -43,4 +44,6 @@ dependencies {
     implementation("org.apache.commons:commons-compress:$commonsCompressVersion")
     implementation("org.tukaani:xz:$xzVersion")
     implementation("org.jetbrains.kotlin:kotlin-scripting-jsr223-embeddable")
+
+    testImplementation("io.mockk:mockk:$mockkVersion")
 }
