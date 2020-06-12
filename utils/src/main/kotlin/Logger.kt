@@ -28,7 +28,7 @@ import java.util.concurrent.ConcurrentHashMap
 /**
  * Global map of loggers for classes so only one logger needs to be instantiated per class.
  */
-val loggerOfClass = ConcurrentHashMap<Any, KotlinLogger>()
+val loggerOfClass = mutableMapOf<Any, KotlinLogger>()
 
 /**
  * An extension property for adding a log instance to any (unique) class.
