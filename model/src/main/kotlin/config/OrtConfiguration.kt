@@ -32,7 +32,12 @@ data class OrtConfiguration(
     /**
      * The configuration of the scanner.
      */
-    val scanner: ScannerConfiguration? = null
+    val scanner: ScannerConfiguration? = null,
+
+    /**
+     * The configuration of the web application.
+     */
+    val web: WebConfiguration? = null
 ) {
     companion object {
         /**

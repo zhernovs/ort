@@ -45,20 +45,37 @@ import org.jetbrains.exposed.sql.SchemaUtils
 import org.jetbrains.exposed.sql.SchemaUtils.withDataBaseLock
 import org.jetbrains.exposed.sql.transactions.transaction
 
+import org.ossreviewtoolkit.model.config.OrtConfiguration
+import org.ossreviewtoolkit.utils.ORT_FULL_NAME
+import org.ossreviewtoolkit.utils.getOrtDataDirectory
 import org.ossreviewtoolkit.web.jvm.dao.OrtProjectDao
 import org.ossreviewtoolkit.web.jvm.dao.OrtProjects
 import org.ossreviewtoolkit.web.jvm.util.createSampleData
+import org.postgresql.ds.PGSimpleDataSource
 
 import org.slf4j.event.Level
 
+internal const val TOOL_NAME = "web"
+
 fun main() {
-    // TODO: Read the database connection properties from the configuration file.
-    Database.connect(
-        "jdbc:postgresql://localhost:5432/postgres",
-        driver = "org.postgresql.Driver",
-        user = "postgres",
-        password = "test"
-    )
+    val config = OrtConfiguration.load(configFile = getOrtDataDirectory().resolve("config/ort.conf"))
+    val postgresConfig = config.web?.postgres
+
+    require(postgresConfig != null) { "ORT config file is missing configuration for the PostgreSQL connection." }
+
+    val dataSource = PGSimpleDataSource().apply {
+        applicationName = "$ORT_FULL_NAME - $TOOL_NAME"
+        setUrl(postgresConfig.url)
+        user = postgresConfig.username
+        password = postgresConfig.password
+        currentSchema = postgresConfig.schema
+        sslmode = postgresConfig.sslmode
+        postgresConfig.sslcert?.let { sslcert = it }
+        postgresConfig.sslkey?.let { sslkey = it }
+        postgresConfig.sslrootcert?.let { sslrootcert = it }
+    }
+
+    Database.connect(dataSource)
 
     transaction {
         withDataBaseLock {

@@ -118,6 +118,8 @@ kotlin {
             dependencies {
                 implementation(kotlin("stdlib-jdk8"))
 
+                implementation(project(":model"))
+
                 implementation("com.github.lamba92:ktor-spa:$ktorSpaVersion")
                 implementation("io.ktor:ktor-serialization:$ktorVersion")
                 implementation("io.ktor:ktor-server-netty:$ktorVersion")
