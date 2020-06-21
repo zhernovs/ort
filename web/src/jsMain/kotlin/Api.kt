@@ -20,6 +20,7 @@
 package org.ossreviewtoolkit.web.js
 
 import io.ktor.client.HttpClient
+import io.ktor.client.features.ClientRequestException
 import io.ktor.client.features.json.JsonFeature
 import io.ktor.client.features.json.serializer.KotlinxSerializer
 import io.ktor.client.request.get
@@ -40,6 +41,13 @@ object Api {
             serializer = KotlinxSerializer()
         }
     }
+
+    suspend fun fetchOrtProject(id: Int): OrtProject? =
+        try {
+            CLIENT.get("$API_URL/ortProjects/$id")
+        } catch (e: ClientRequestException) {
+            null
+        }
 
     suspend fun fetchOrtProjects(): List<OrtProject> = CLIENT.get("$API_URL/ortProjects")
 

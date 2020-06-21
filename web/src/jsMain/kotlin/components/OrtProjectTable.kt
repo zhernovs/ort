@@ -27,6 +27,7 @@ import react.RProps
 import react.RState
 import react.ReactElement
 import react.dom.*
+import react.router.dom.routeLink
 
 interface OrtProjectTableProps : RProps {
     var ortProjects: List<OrtProject>
@@ -41,6 +42,7 @@ class OrtProjectTable(props: OrtProjectTableProps) : RComponent<OrtProjectTableP
                     th { +"Type" }
                     th { +"URL" }
                     th { +"Path" }
+                    th { +"" }
                 }
             }
 
@@ -53,6 +55,7 @@ class OrtProjectTable(props: OrtProjectTableProps) : RComponent<OrtProjectTableP
                         td { +ortProject.type }
                         td { +ortProject.url }
                         td { +ortProject.path }
+                        td { routeLink("ortProject/${ortProject.id}") { +"Details" } }
                     }
                 }
             }

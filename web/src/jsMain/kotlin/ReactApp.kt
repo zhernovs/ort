@@ -20,6 +20,7 @@
 package org.ossreviewtoolkit.web.js
 
 import org.ossreviewtoolkit.web.js.components.ortProjectListPage
+import org.ossreviewtoolkit.web.js.components.ortProjectPage
 import react.RBuilder
 import react.RComponent
 import react.RProps
@@ -29,6 +30,12 @@ import react.router.dom.route
 import react.router.dom.switch
 import styled.styledImg
 
+interface IdProps : RProps {
+    // Should be Int, but for some reason type conversion does not work and in JS this is still a String, even if
+    // defined as Int here. Therefore use String and manually cast.
+    var id: String
+}
+
 class ReactApp : RComponent<RProps, RState>() {
     override fun RBuilder.render() {
         browserRouter {
@@ -37,6 +44,14 @@ class ReactApp : RComponent<RProps, RState>() {
             switch {
                 route("/main", exact = true) {
                     ortProjectListPage {}
+                }
+
+                route<IdProps>("/ortProject/:id") { props ->
+                    val id = props.match.params.id.toInt()
+
+                    ortProjectPage {
+                        ortProjectId = id
+                    }
                 }
             }
         }

@@ -41,6 +41,7 @@ import io.ktor.routing.routing
 import io.ktor.serialization.json
 import io.ktor.server.engine.embeddedServer
 import io.ktor.server.netty.Netty
+import io.ktor.util.getValue
 
 import org.jetbrains.exposed.sql.Database
 import org.jetbrains.exposed.sql.SchemaUtils
@@ -128,6 +129,16 @@ fun Application.module() {
             val ortProjects = transaction { OrtProjectDao.all().map { it.detached() } }
 
             call.respond(ortProjects)
+        }
+
+        get("/api/ortProjects/{id}") {
+            val ortProjectId = call.parameters["id"]!!.toInt()
+            val ortProject = transaction { OrtProjectDao.findById(ortProjectId)?.detached() }
+            if (ortProject != null) {
+                call.respond(ortProject)
+            } else {
+                call.respond(HttpStatusCode.NotFound)
+            }
         }
 
         post("/api/ortProjects") {
