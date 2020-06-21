@@ -25,24 +25,17 @@ import org.jetbrains.exposed.dao.id.EntityID
 import org.jetbrains.exposed.dao.id.IntIdTable
 import org.jetbrains.exposed.sql.Column
 
-import org.ossreviewtoolkit.web.common.OrtProject
+import org.ossreviewtoolkit.model.AnalyzerRun
+import org.ossreviewtoolkit.model.jsonMapper
 
-object OrtProjects : IntIdTable() {
-    val name: Column<String> = text("name")
-    val type: Column<String> = text("type")
-    val url: Column<String> = text("url")
-    val path: Column<String> = text("path")
+object AnalyzerResults : IntIdTable() {
+    val ortProjectScan: Column<EntityID<Int>> = reference("ort_project_scan_id", OrtProjects)
+    val analyzerResult: Column<AnalyzerRun> = jsonb("analyzer_result", AnalyzerRun::class, jsonMapper)
 }
 
-class OrtProjectDao(id: EntityID<Int>) : IntEntity(id) {
-    companion object : IntEntityClass<OrtProjectDao>(OrtProjects)
+class AnalyzerResultDao(id: EntityID<Int>) : IntEntity(id) {
+    companion object : IntEntityClass<AnalyzerResultDao>(AnalyzerResults)
 
-    var name by OrtProjects.name
-    var type by OrtProjects.type
-    var url by OrtProjects.url
-    var path by OrtProjects.path
-
-    val scans by OrtProjectScanDao referrersOn OrtProjectScans.ortProject
-
-    fun detached(): OrtProject = OrtProject(id.value, name, type, url, path)
+    var ortProjectScan by OrtProjectScanDao referencedOn AnalyzerResults.ortProjectScan
+    var analyzerResult by AnalyzerResults.analyzerResult
 }

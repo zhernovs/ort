@@ -41,7 +41,8 @@ import io.ktor.routing.routing
 import io.ktor.serialization.json
 import io.ktor.server.engine.embeddedServer
 import io.ktor.server.netty.Netty
-import io.ktor.util.getValue
+
+import java.time.Instant
 
 import org.jetbrains.exposed.sql.Database
 import org.jetbrains.exposed.sql.SchemaUtils
@@ -50,12 +51,18 @@ import org.jetbrains.exposed.sql.transactions.transaction
 
 import org.ossreviewtoolkit.model.config.OrtConfiguration
 import org.ossreviewtoolkit.utils.ORT_FULL_NAME
-import org.ossreviewtoolkit.utils.getOrtDataDirectory
+import org.ossreviewtoolkit.utils.ortDataDirectory
+import org.ossreviewtoolkit.utils.showStackTrace
 import org.ossreviewtoolkit.web.common.ApiResult
 import org.ossreviewtoolkit.web.common.OrtProject
+import org.ossreviewtoolkit.web.common.OrtProjectScanStatus
+import org.ossreviewtoolkit.web.jvm.dao.AnalyzerResults
 import org.ossreviewtoolkit.web.jvm.dao.OrtProjectDao
+import org.ossreviewtoolkit.web.jvm.dao.OrtProjectScanDao
+import org.ossreviewtoolkit.web.jvm.dao.OrtProjectScans
 import org.ossreviewtoolkit.web.jvm.dao.OrtProjects
 import org.ossreviewtoolkit.web.jvm.util.createSampleData
+
 import org.postgresql.ds.PGSimpleDataSource
 
 import org.slf4j.event.Level
@@ -63,7 +70,7 @@ import org.slf4j.event.Level
 internal const val TOOL_NAME = "web"
 
 fun main() {
-    val config = OrtConfiguration.load(configFile = getOrtDataDirectory().resolve("config/ort.conf"))
+    val config = OrtConfiguration.load(configFile = ortDataDirectory.resolve("config/ort.conf"))
     val postgresConfig = config.web?.postgres
 
     require(postgresConfig != null) { "ORT config file is missing configuration for the PostgreSQL connection." }
@@ -85,7 +92,9 @@ fun main() {
     transaction {
         withDataBaseLock {
             SchemaUtils.createMissingTablesAndColumns(
-                OrtProjects
+                AnalyzerResults,
+                OrtProjects,
+                OrtProjectScans
             )
 
             createSampleData()
@@ -141,6 +150,15 @@ fun Application.module() {
             }
         }
 
+        get("/api/ortProjects/{id}/scans") {
+            val ortProjectId = call.parameters["id"]!!.toInt()
+            val scans = transaction {
+                val ortProject = OrtProjectDao.findById(ortProjectId)
+                ortProject?.scans?.map { it.detached() }.orEmpty()
+            }
+            call.respond(scans)
+        }
+
         post("/api/ortProjects") {
             try {
                 val ortProject = call.receive<OrtProject>()
@@ -159,9 +177,37 @@ fun Application.module() {
                     ApiResult(true, "Created ORT project: ${ortProject.name}")
                 )
             } catch (e: Exception) {
+                e.showStackTrace()
                 call.respond(
                     HttpStatusCode.NotAcceptable,
                     ApiResult(false, "Could not create ORT project: ${e.message}")
+                )
+            }
+        }
+
+        post("/api/ortProjects/{id}/scans") {
+            val ortProjectId = call.parameters["id"]!!.toInt()
+            val revision = call.receive<String>()
+            val ortProject = transaction { OrtProjectDao.findById(ortProjectId) }
+            if (ortProject != null) {
+                try {
+                    transaction {
+                        OrtProjectScanDao.new {
+                            this.ortProject = ortProject
+                            this.dateTime = Instant.now().toEpochMilli()
+                            this.revision = revision
+                            status = OrtProjectScanStatus.QUEUED
+                        }
+                    }
+                    call.respond(HttpStatusCode.Created, ApiResult(true, "Started scan for revision: $revision"))
+                } catch (e: Exception) {
+                    e.showStackTrace()
+                    call.respond(HttpStatusCode.NotAcceptable, ApiResult(false, "Could not start scan: ${e.message}"))
+                }
+            } else {
+                call.respond(
+                    HttpStatusCode.NotAcceptable,
+                    ApiResult(false, "Could not find ORT project with id $ortProjectId.")
                 )
             }
         }

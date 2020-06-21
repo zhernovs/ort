@@ -31,6 +31,7 @@ import io.ktor.http.HttpHeaders
 
 import org.ossreviewtoolkit.web.common.ApiResult
 import org.ossreviewtoolkit.web.common.OrtProject
+import org.ossreviewtoolkit.web.common.OrtProjectScan
 
 object Api {
     // TODO: Use actual server URL instead of hardcoded localhost.
@@ -51,9 +52,21 @@ object Api {
 
     suspend fun fetchOrtProjects(): List<OrtProject> = CLIENT.get("$API_URL/ortProjects")
 
+    suspend fun fetchOrtProjectScans(ortProjectId: Int): List<OrtProjectScan> =
+        try {
+            CLIENT.get("$API_URL/ortProjects/$ortProjectId/scans")
+        } catch (e: ClientRequestException) {
+            emptyList()
+        }
+
     suspend fun createOrtProject(ortProject: OrtProject): ApiResult =
         CLIENT.post("$API_URL/ortProjects") {
             header(HttpHeaders.ContentType, ContentType.Application.Json)
             body = ortProject
+        }
+
+    suspend fun startScan(ortProjectId: Int, revision: String): ApiResult =
+        CLIENT.post("$API_URL/ortProjects/${ortProjectId}/scans") {
+            body = revision
         }
 }

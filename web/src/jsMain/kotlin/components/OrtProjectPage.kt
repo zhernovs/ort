@@ -21,8 +21,11 @@ package org.ossreviewtoolkit.web.js.components
 
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.launch
+import kotlinx.html.ButtonType
+import kotlinx.html.js.onClickFunction
 
 import org.ossreviewtoolkit.web.common.OrtProject
+import org.ossreviewtoolkit.web.common.OrtProjectScan
 import org.ossreviewtoolkit.web.js.Api
 
 import react.RBuilder
@@ -42,14 +45,20 @@ interface OrtProjectPageProps : RProps {
 
 interface OrtProjectPageState : RState {
     var isUpdating: Boolean
+    var isUpdatingScans: Boolean
     var ortProject: OrtProject?
+    var ortProjectScans: List<OrtProjectScan>
+    var showForm: Boolean
 }
 
 class OrtProjectPage(props: OrtProjectPageProps) :
     RComponent<OrtProjectPageProps, OrtProjectPageState>(props) {
     override fun OrtProjectPageState.init(props: OrtProjectPageProps) {
         isUpdating = true
+        isUpdatingScans = true
         ortProject = null
+        ortProjectScans = emptyList()
+        showForm = false
 
         updateOrtProject()
     }
@@ -80,6 +89,26 @@ class OrtProjectPage(props: OrtProjectPageProps) :
                             td { +ortProject.path }
                         }
                     }
+
+                    button(type = ButtonType.button) {
+                        attrs {
+                            onClickFunction = { setState { showForm = true } }
+                        }
+
+                        +"Start new scan"
+                    }
+
+                    when {
+                        state.isUpdatingScans -> div("loader") {}
+                        state.ortProjectScans.isEmpty() -> styledH2 { +"No scans found." }
+                        else -> ortProjectScanTable { ortProjectScans = state.ortProjectScans }
+                    }
+
+                    if (state.showForm) {
+                        startScanForm {
+                            onSubmit = ::startScan
+                        }
+                    }
                 }
             }
         }
@@ -87,11 +116,32 @@ class OrtProjectPage(props: OrtProjectPageProps) :
 
     private fun updateOrtProject() {
         MainScope().launch {
-            // TODO: Does not work if id is invalid, because of 404. Change ApiResult class to be generic and contain result? Or use try/catch?
             val ortProject = Api.fetchOrtProject(props.ortProjectId)
             setState {
                 isUpdating = false
                 this.ortProject = ortProject
+            }
+            updateOrtProjectScans()
+        }
+    }
+
+    private fun updateOrtProjectScans() {
+        MainScope().launch {
+            val ortProjectScans = Api.fetchOrtProjectScans(props.ortProjectId)
+            setState {
+                isUpdatingScans = false
+                this.ortProjectScans = ortProjectScans
+            }
+        }
+    }
+
+    private fun startScan(revision: String?) {
+        setState { showForm = false }
+        MainScope().launch {
+            if (revision != null) {
+                Api.startScan(props.ortProjectId, revision)
+
+                updateOrtProjectScans()
             }
         }
     }
