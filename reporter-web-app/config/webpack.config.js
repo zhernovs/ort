@@ -654,7 +654,7 @@ module.exports = function (webpackEnv) {
 
             const result = data.replace(
               /(<script.*? id="ort-report-data">)([\s\S]*?)(<\/script>)/g,
-              '$1ORT_REPORT_DATA_PLACEHOLDER$3'
+              '<script type="application/gzip" id="ort-report-data">ORT_REPORT_DATA_PLACEHOLDER$3'
             );
 
             fs.writeFile('./build/scan-report-template.html', result, 'utf8', (err) => {

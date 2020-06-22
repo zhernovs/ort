@@ -22,6 +22,7 @@
 val antennaVersion: String by project
 val apachePoiVersion: String by project
 val apachePoiSchemasVersion: String by project
+val commonsCodecVersion: String by project
 val cyclonedxCoreJavaVersion: String by project
 val flexmarkVersion: String by project
 val hamcrestCoreVersion: String by project
