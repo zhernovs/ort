@@ -24,8 +24,10 @@ import kotlinx.serialization.Serializable
 @Serializable
 enum class OrtProjectScanStatus {
     QUEUED,
-    DOWNLOADING_REPOSITORY,
+    START_ANALYZING_DEPENDENCIES,
+    DOWNLOADING_SOURCE_CODE,
     ANALYZING_DEPENDENCIES,
+    ANALYZING_DEPENDENCIES_FINISHED,
     SCANNING_DEPENDENCIES,
     FAILED,
     DONE

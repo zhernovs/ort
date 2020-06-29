@@ -52,15 +52,17 @@ import org.jetbrains.exposed.sql.transactions.transaction
 import org.ossreviewtoolkit.model.config.OrtConfiguration
 import org.ossreviewtoolkit.utils.ORT_FULL_NAME
 import org.ossreviewtoolkit.utils.ortDataDirectory
+import org.ossreviewtoolkit.utils.printStackTrace
 import org.ossreviewtoolkit.utils.showStackTrace
 import org.ossreviewtoolkit.web.common.ApiResult
 import org.ossreviewtoolkit.web.common.OrtProject
 import org.ossreviewtoolkit.web.common.OrtProjectScanStatus
-import org.ossreviewtoolkit.web.jvm.dao.AnalyzerResults
+import org.ossreviewtoolkit.web.jvm.dao.AnalyzerRuns
 import org.ossreviewtoolkit.web.jvm.dao.OrtProjectDao
 import org.ossreviewtoolkit.web.jvm.dao.OrtProjectScanDao
 import org.ossreviewtoolkit.web.jvm.dao.OrtProjectScans
 import org.ossreviewtoolkit.web.jvm.dao.OrtProjects
+import org.ossreviewtoolkit.web.jvm.service.AnalyzerService
 import org.ossreviewtoolkit.web.jvm.util.createSampleData
 
 import org.postgresql.ds.PGSimpleDataSource
@@ -70,6 +72,8 @@ import org.slf4j.event.Level
 internal const val TOOL_NAME = "web"
 
 fun main() {
+    printStackTrace = true
+
     val config = OrtConfiguration.load(configFile = ortDataDirectory.resolve("config/ort.conf"))
     val postgresConfig = config.web?.postgres
 
@@ -92,7 +96,7 @@ fun main() {
     transaction {
         withDataBaseLock {
             SchemaUtils.createMissingTablesAndColumns(
-                AnalyzerResults,
+                AnalyzerRuns,
                 OrtProjects,
                 OrtProjectScans
             )
@@ -102,6 +106,8 @@ fun main() {
     }
 
     embeddedServer(Netty, 8080, watchPaths = listOf("ApplicationKt"), module = Application::module).start()
+
+    AnalyzerService().start()
 }
 
 fun Application.module() {

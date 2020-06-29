@@ -44,7 +44,7 @@ class OrtProjectScanDao(id: EntityID<Int>) : IntEntity(id) {
     var revision by OrtProjectScans.revision
     var status by OrtProjectScans.status
 
-    val analyzerResults by AnalyzerResultDao referrersOn AnalyzerResults.ortProjectScan
+    val analyzerRuns by AnalyzerRunDao referrersOn AnalyzerRuns.ortProjectScan
 
     fun detached(): OrtProjectScan =
         OrtProjectScan(id.value, transaction { ortProject.id.value }, dateTime, revision, status)

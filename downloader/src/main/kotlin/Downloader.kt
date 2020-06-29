@@ -156,7 +156,7 @@ object Downloader {
         throw exception
     }
 
-    private fun downloadFromVcs(pkg: Package, outputDirectory: File, allowMovingRevisions: Boolean): DownloadResult {
+    fun downloadFromVcs(pkg: Package, outputDirectory: File, allowMovingRevisions: Boolean): DownloadResult {
         log.info {
             "Trying to download '${pkg.id.toCoordinates()}' sources to '${outputDirectory.absolutePath}' from VCS..."
         }

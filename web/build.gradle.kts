@@ -50,6 +50,7 @@ application {
 repositories {
     jcenter()
     maven { url = uri("https://kotlin.bintray.com/kotlin-js-wrappers") }
+    maven { url = uri("https://repo.gradle.org/gradle/libs-releases-local/") }
 }
 
 kotlin {
@@ -118,6 +119,8 @@ kotlin {
             dependencies {
                 implementation(kotlin("stdlib-jdk8"))
 
+                implementation(project(":analyzer"))
+                implementation(project(":downloader"))
                 implementation(project(":model"))
 
                 implementation("com.github.lamba92:ktor-spa:$ktorSpaVersion")

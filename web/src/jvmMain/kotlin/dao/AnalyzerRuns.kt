@@ -28,14 +28,14 @@ import org.jetbrains.exposed.sql.Column
 import org.ossreviewtoolkit.model.AnalyzerRun
 import org.ossreviewtoolkit.model.jsonMapper
 
-object AnalyzerResults : IntIdTable() {
-    val ortProjectScan: Column<EntityID<Int>> = reference("ort_project_scan_id", OrtProjects)
-    val analyzerResult: Column<AnalyzerRun> = jsonb("analyzer_result", AnalyzerRun::class, jsonMapper)
+object AnalyzerRuns : IntIdTable() {
+    val ortProjectScan: Column<EntityID<Int>> = reference("ort_project_scan_id", OrtProjectScans)
+    val analyzerRun: Column<AnalyzerRun> = jsonb("analyzer_run", AnalyzerRun::class, jsonMapper)
 }
 
-class AnalyzerResultDao(id: EntityID<Int>) : IntEntity(id) {
-    companion object : IntEntityClass<AnalyzerResultDao>(AnalyzerResults)
+class AnalyzerRunDao(id: EntityID<Int>) : IntEntity(id) {
+    companion object : IntEntityClass<AnalyzerRunDao>(AnalyzerRuns)
 
-    var ortProjectScan by OrtProjectScanDao referencedOn AnalyzerResults.ortProjectScan
-    var analyzerResult by AnalyzerResults.analyzerResult
+    var ortProjectScan by OrtProjectScanDao referencedOn AnalyzerRuns.ortProjectScan
+    var analyzerRun by AnalyzerRuns.analyzerRun
 }
