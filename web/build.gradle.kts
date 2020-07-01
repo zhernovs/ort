@@ -122,6 +122,7 @@ kotlin {
                 implementation(project(":analyzer"))
                 implementation(project(":downloader"))
                 implementation(project(":model"))
+                implementation(project(":scanner"))
 
                 implementation("com.github.lamba92:ktor-spa:$ktorSpaVersion")
                 implementation("io.ktor:ktor-serialization:$ktorVersion")

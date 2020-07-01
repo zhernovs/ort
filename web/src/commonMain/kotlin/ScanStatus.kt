@@ -24,7 +24,6 @@ import kotlinx.serialization.Serializable
 @Serializable
 enum class ScanStatus {
     QUEUED,
-    DOWNLOADING,
     SCANNING,
     FAILED,
     DONE

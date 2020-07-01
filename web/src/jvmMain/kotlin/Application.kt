@@ -66,6 +66,7 @@ import org.ossreviewtoolkit.web.jvm.dao.OrtProjectScans
 import org.ossreviewtoolkit.web.jvm.dao.OrtProjects
 import org.ossreviewtoolkit.web.jvm.dao.ScanResults
 import org.ossreviewtoolkit.web.jvm.service.AnalyzerService
+import org.ossreviewtoolkit.web.jvm.service.ScannerService
 import org.ossreviewtoolkit.web.jvm.util.createSampleData
 
 import org.postgresql.ds.PGSimpleDataSource
@@ -113,6 +114,7 @@ fun main() {
     embeddedServer(Netty, 8080, watchPaths = listOf("ApplicationKt"), module = Application::module).start()
 
     AnalyzerService().start()
+    ScannerService().start()
 }
 
 fun Application.module() {
