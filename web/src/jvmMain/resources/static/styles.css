@@ -1,5 +1,24 @@
 body {
     font-family: sans-serif;
+    margin: 0;
+}
+
+a {
+    color: #000000;
+    outline: 0;
+    text-decoration: none;
+}
+
+a:visited {
+    color: #000000;
+}
+
+a:hover {
+    color: #555555;
+}
+
+a:active {
+    color: #666666;
 }
 
 button {
@@ -88,6 +107,21 @@ tr:last-child td:first-child {
 
 tr:last-child td:last-child {
     border-bottom-right-radius: .28rem;
+}
+
+header {
+    background-color: #fafafa;
+    border-bottom: 1px solid #cacaca;
+}
+
+header a {
+    font-size: 1.2rem;
+    margin-left: 3rem;
+    padding-top: 2rem;
+}
+
+.content {
+    margin: 1rem;
 }
 
 .loader {

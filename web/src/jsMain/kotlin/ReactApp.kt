@@ -19,16 +19,20 @@
 
 package org.ossreviewtoolkit.web.js
 
+import kotlinx.css.*
+
 import org.ossreviewtoolkit.web.js.components.ortProjectListPage
 import org.ossreviewtoolkit.web.js.components.ortProjectPage
 import org.ossreviewtoolkit.web.js.components.scanResultListPage
+
 import react.RBuilder
 import react.RComponent
 import react.RProps
 import react.RState
 import react.dom.*
 import react.router.dom.*
-import styled.styledImg
+
+import styled.*
 
 interface IdProps : RProps {
     // Should be Int, but for some reason type conversion does not work and in JS this is still a String, even if
@@ -39,28 +43,39 @@ interface IdProps : RProps {
 class ReactApp : RComponent<RProps, RState>() {
     override fun RBuilder.render() {
         browserRouter {
-            styledImg(alt = "OSS Review Toolkit", src = "/static/ort.png") {}
-
-            ul {
-                li { routeLink("/main") { +"ORT Projects" } }
-                li { routeLink("/scanResults") { +"Scan Results" } }
-            }
-
-            switch {
-                route("/main", exact = true) {
-                    ortProjectListPage {}
-                }
-
-                route<IdProps>("/ortProject/:id") { props ->
-                    val id = props.match.params.id.toInt()
-
-                    ortProjectPage {
-                        ortProjectId = id
+            header {
+                styledImg(alt = "OSS Review Toolkit", src = "/static/ort.png") {
+                    css {
+                        width = 20.rem
+                        height = LinearDimension.auto
+                        marginTop = 1.rem
+                        marginLeft = 1.rem
+                        marginBottom = 1.rem
+                        verticalAlign = VerticalAlign.middle
                     }
                 }
 
-                route("/scanResults") {
-                    scanResultListPage {}
+                routeLink("/main") { +"ORT Projects" }
+                routeLink("/scanResults") { +"Scan Results" }
+            }
+
+            div("content") {
+                switch {
+                    route("/main", exact = true) {
+                        ortProjectListPage {}
+                    }
+
+                    route<IdProps>("/ortProject/:id") { props ->
+                        val id = props.match.params.id.toInt()
+
+                        ortProjectPage {
+                            ortProjectId = id
+                        }
+                    }
+
+                    route("/scanResults") {
+                        scanResultListPage {}
+                    }
                 }
             }
         }
