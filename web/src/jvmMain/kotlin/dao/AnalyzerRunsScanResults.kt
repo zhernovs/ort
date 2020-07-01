@@ -17,17 +17,13 @@
  * License-Filename: LICENSE
  */
 
-package org.ossreviewtoolkit.web.common
+package org.ossreviewtoolkit.web.jvm.dao
 
-import kotlinx.serialization.Serializable
+import org.jetbrains.exposed.sql.Table
 
-@Serializable
-enum class OrtProjectScanStatus {
-    QUEUED,
-    START_ANALYZING_DEPENDENCIES,
-    DOWNLOADING_SOURCE_CODE,
-    ANALYZING_DEPENDENCIES,
-    SCANNING_DEPENDENCIES,
-    FAILED,
-    DONE
+object AnalyzerRunsScanResults : Table() {
+    val analyzerRun = reference("analyzer_run", AnalyzerRuns)
+    val scanResult = reference("scan_result", ScanResults)
+
+    override val primaryKey = PrimaryKey(analyzerRun, scanResult)
 }

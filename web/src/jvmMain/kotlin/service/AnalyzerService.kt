@@ -19,6 +19,9 @@
 
 package org.ossreviewtoolkit.web.jvm.service
 
+import org.jetbrains.exposed.sql.and
+import org.jetbrains.exposed.sql.insert
+import org.jetbrains.exposed.sql.select
 import java.io.File
 
 import org.jetbrains.exposed.sql.transactions.transaction
@@ -26,16 +29,20 @@ import org.jetbrains.exposed.sql.transactions.transaction
 import org.ossreviewtoolkit.analyzer.Analyzer
 import org.ossreviewtoolkit.downloader.DownloadException
 import org.ossreviewtoolkit.downloader.Downloader
-import org.ossreviewtoolkit.model.AnalyzerRun
 import org.ossreviewtoolkit.model.Package
 import org.ossreviewtoolkit.model.VcsInfo
 import org.ossreviewtoolkit.model.VcsType
 import org.ossreviewtoolkit.model.config.AnalyzerConfiguration
 import org.ossreviewtoolkit.utils.*
+import org.ossreviewtoolkit.web.common.OrtProjectScan
 import org.ossreviewtoolkit.web.common.OrtProjectScanStatus
+import org.ossreviewtoolkit.web.common.ScanStatus
 import org.ossreviewtoolkit.web.jvm.dao.AnalyzerRunDao
+import org.ossreviewtoolkit.web.jvm.dao.AnalyzerRunsScanResults
 import org.ossreviewtoolkit.web.jvm.dao.OrtProjectScanDao
 import org.ossreviewtoolkit.web.jvm.dao.OrtProjectScans
+import org.ossreviewtoolkit.web.jvm.dao.ScanResultDao
+import org.ossreviewtoolkit.web.jvm.dao.ScanResults
 
 /**
  * A thread that polls the database for queued [OrtProjectScan]s and runs the [Analyzer] if it finds one. This service
@@ -60,10 +67,14 @@ class AnalyzerService : Thread("AnalyzerService") {
                     if (downloadResult.success) {
                         log.info { "Finished download of ${scan.detached()}." }
                         val analyzeResult = analyze(scan, downloadResult.downloadDir)
-                        val analyzerRun = analyzeResult.analyzerRun
-                        if (analyzeResult.success && analyzerRun != null) {
+                        val analyzerRunDao = analyzeResult.analyzerRun
+                        if (analyzeResult.success && analyzerRunDao != null) {
                             log.info { "Finished analysis of ${scan.detached()}." }
-                            transaction { scan.status = OrtProjectScanStatus.ANALYZING_DEPENDENCIES_FINISHED }
+                            transaction { scan.status = OrtProjectScanStatus.SCANNING_DEPENDENCIES }
+                            analyzerRunDao.analyzerRun.result.packages.forEach {
+                                // TODO: Also schedule scans for projects!
+                                scheduleScan(analyzerRunDao, it.pkg)
+                            }
                         } else {
                             // TODO: Add analyzer result with error message.
                             log.warn { "Analysis of ${scan.detached()} failed: ${analyzeResult.message}" }
@@ -85,7 +96,7 @@ class AnalyzerService : Thread("AnalyzerService") {
 
     private fun findScan(): OrtProjectScanDao? =
         transaction {
-            log.debug{"Searching for ORT project scan to analyze..."}
+            log.debug { "Searching for ORT project scan to analyze..." }
 
             OrtProjectScanDao.find { OrtProjectScans.status eq OrtProjectScanStatus.QUEUED }.limit(1).firstOrNull()
                 .also {
@@ -93,7 +104,7 @@ class AnalyzerService : Thread("AnalyzerService") {
                         log.debug { "Found ORT project scan ${it.id}." }
                         it.status = OrtProjectScanStatus.START_ANALYZING_DEPENDENCIES
                     } else {
-                        log.debug { "No ORT project scan found."}
+                        log.debug { "No ORT project scan found." }
                     }
                 }
         }
@@ -147,19 +158,54 @@ class AnalyzerService : Thread("AnalyzerService") {
             val analyzerRun = ortResult.analyzer
 
             if (analyzerRun != null) {
-                transaction {
+                val analyzerRunDao = transaction {
                     AnalyzerRunDao.new {
                         this.ortProjectScan = scan
                         this.analyzerRun = analyzerRun
                     }
                 }
-                AnalyzerPhaseResult(true, analyzerRun)
+                AnalyzerPhaseResult(true, analyzerRunDao)
             } else {
-                AnalyzerPhaseResult(false, analyzerRun)
+                AnalyzerPhaseResult(false, null)
             }
         } catch (e: Exception) {
             e.showStackTrace()
             AnalyzerPhaseResult(false, null, e.collectMessagesAsString())
+        }
+    }
+
+    private fun scheduleScan(analyzerRunDao: AnalyzerRunDao, pkg: Package) {
+        val newScan = transaction {
+            val existingResults = ScanResults
+                .slice(ScanResults.id, ScanResults.packageId)
+                .select { (ScanResults.packageId eq pkg.id.toCoordinates()) and (ScanResults.pkg eq pkg) }
+                .toList()
+
+            existingResults.forEach { resultRow ->
+                AnalyzerRunsScanResults.insert {
+                    it[analyzerRun] = analyzerRunDao.id
+                    it[scanResult] = resultRow[ScanResults.id]
+                }
+            }
+
+            if (existingResults.isEmpty()) {
+                log.debug { "Scheduling scan for '${pkg.id.toCoordinates()}'." }
+                ScanResultDao.new {
+                    this.packageId = pkg.id
+                    this.pkg = pkg
+                    this.scanResult = null
+                    this.status = ScanStatus.QUEUED
+                }
+            } else null
+        }
+
+        if (newScan != null) {
+            transaction {
+                AnalyzerRunsScanResults.insert {
+                    it[analyzerRun] = analyzerRunDao.id
+                    it[scanResult] = newScan.id
+                }
+            }
         }
     }
 
@@ -171,7 +217,7 @@ class AnalyzerService : Thread("AnalyzerService") {
 
     private data class AnalyzerPhaseResult(
         val success: Boolean,
-        val analyzerRun: AnalyzerRun?,
+        val analyzerRun: AnalyzerRunDao?,
         val message: String = ""
     )
 }

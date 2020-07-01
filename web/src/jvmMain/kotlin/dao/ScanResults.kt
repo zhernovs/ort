@@ -25,19 +25,26 @@ import org.jetbrains.exposed.dao.id.EntityID
 import org.jetbrains.exposed.dao.id.IntIdTable
 import org.jetbrains.exposed.sql.Column
 
-import org.ossreviewtoolkit.model.AnalyzerRun
+import org.ossreviewtoolkit.model.Identifier
+import org.ossreviewtoolkit.model.Package
+import org.ossreviewtoolkit.model.ScanResult
 import org.ossreviewtoolkit.model.jsonMapper
+import org.ossreviewtoolkit.web.common.ScanStatus
 
-object AnalyzerRuns : IntIdTable() {
-    val ortProjectScan: Column<EntityID<Int>> = reference("ort_project_scan_id", OrtProjectScans)
-    val analyzerRun: Column<AnalyzerRun> = jsonb("analyzer_run", AnalyzerRun::class, jsonMapper)
+object ScanResults : IntIdTable() {
+    val packageId: Column<String> = text("package_id")
+    val pkg: Column<Package> = jsonb("package", Package::class, jsonMapper)
+    val scanResult: Column<ScanResult?> = jsonb("scan_result", ScanResult::class, jsonMapper).nullable()
+    val status: Column<ScanStatus> = enumerationByName("status", 50, ScanStatus::class)
 }
 
-class AnalyzerRunDao(id: EntityID<Int>) : IntEntity(id) {
-    companion object : IntEntityClass<AnalyzerRunDao>(AnalyzerRuns)
+class ScanResultDao(id: EntityID<Int>) : IntEntity(id) {
+    companion object : IntEntityClass<ScanResultDao>(ScanResults)
 
-    var ortProjectScan by OrtProjectScanDao referencedOn AnalyzerRuns.ortProjectScan
-    var analyzerRun by AnalyzerRuns.analyzerRun
+    var packageId by ScanResults.packageId.transform({ it.toCoordinates() }, { Identifier(it) })
+    var pkg by ScanResults.pkg
+    var scanResult by ScanResults.scanResult
+    var status by ScanResults.status
 
-    val scanResults by ScanResultDao via AnalyzerRunsScanResults
+    val analyzerRuns by AnalyzerRunDao via AnalyzerRunsScanResults
 }

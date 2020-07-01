@@ -22,12 +22,10 @@ package org.ossreviewtoolkit.web.common
 import kotlinx.serialization.Serializable
 
 @Serializable
-enum class OrtProjectScanStatus {
+enum class ScanStatus {
     QUEUED,
-    START_ANALYZING_DEPENDENCIES,
-    DOWNLOADING_SOURCE_CODE,
-    ANALYZING_DEPENDENCIES,
-    SCANNING_DEPENDENCIES,
+    DOWNLOADING,
+    SCANNING,
     FAILED,
     DONE
 }

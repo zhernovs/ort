@@ -57,11 +57,14 @@ import org.ossreviewtoolkit.utils.showStackTrace
 import org.ossreviewtoolkit.web.common.ApiResult
 import org.ossreviewtoolkit.web.common.OrtProject
 import org.ossreviewtoolkit.web.common.OrtProjectScanStatus
+import org.ossreviewtoolkit.web.common.ScanStatus
 import org.ossreviewtoolkit.web.jvm.dao.AnalyzerRuns
+import org.ossreviewtoolkit.web.jvm.dao.AnalyzerRunsScanResults
 import org.ossreviewtoolkit.web.jvm.dao.OrtProjectDao
 import org.ossreviewtoolkit.web.jvm.dao.OrtProjectScanDao
 import org.ossreviewtoolkit.web.jvm.dao.OrtProjectScans
 import org.ossreviewtoolkit.web.jvm.dao.OrtProjects
+import org.ossreviewtoolkit.web.jvm.dao.ScanResults
 import org.ossreviewtoolkit.web.jvm.service.AnalyzerService
 import org.ossreviewtoolkit.web.jvm.util.createSampleData
 
@@ -97,8 +100,10 @@ fun main() {
         withDataBaseLock {
             SchemaUtils.createMissingTablesAndColumns(
                 AnalyzerRuns,
+                AnalyzerRunsScanResults,
                 OrtProjects,
-                OrtProjectScans
+                OrtProjectScans,
+                ScanResults
             )
 
             createSampleData()
@@ -160,7 +165,26 @@ fun Application.module() {
             val ortProjectId = call.parameters["id"]!!.toInt()
             val scans = transaction {
                 val ortProject = OrtProjectDao.findById(ortProjectId)
-                ortProject?.scans?.map { it.detached() }.orEmpty()
+                ortProject?.scans?.map { ortProjectScan ->
+                    if(ortProjectScan.status == OrtProjectScanStatus.SCANNING_DEPENDENCIES) {
+                        // Updating the status here is not very efficient, especially for projects with many
+                        // dependencies. This should be replaced with a more efficient approach.
+                        // This approach could also give false results due to a race condition if the OrtProjectScan was
+                        // just set to SCANNING_DEPENDENCIES but not all of the scans of the dependencies have been
+                        // enqueued.
+                        val done = ortProjectScan.analyzerRun.scanResults.all {
+                            it.status in listOf(
+                                ScanStatus.FAILED,
+                                ScanStatus.DONE
+                            )
+                        }
+
+                        if (done) {
+                            ortProjectScan.status = OrtProjectScanStatus.DONE
+                        }
+                    }
+                    ortProjectScan.detached()
+                }.orEmpty()
             }
             call.respond(scans)
         }
