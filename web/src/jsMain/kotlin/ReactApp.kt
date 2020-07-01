@@ -21,13 +21,13 @@ package org.ossreviewtoolkit.web.js
 
 import org.ossreviewtoolkit.web.js.components.ortProjectListPage
 import org.ossreviewtoolkit.web.js.components.ortProjectPage
+import org.ossreviewtoolkit.web.js.components.scanResultListPage
 import react.RBuilder
 import react.RComponent
 import react.RProps
 import react.RState
-import react.router.dom.browserRouter
-import react.router.dom.route
-import react.router.dom.switch
+import react.dom.*
+import react.router.dom.*
 import styled.styledImg
 
 interface IdProps : RProps {
@@ -41,6 +41,11 @@ class ReactApp : RComponent<RProps, RState>() {
         browserRouter {
             styledImg(alt = "OSS Review Toolkit", src = "/static/ort.png") {}
 
+            ul {
+                li { routeLink("/main") { +"ORT Projects" } }
+                li { routeLink("/scanResults") { +"Scan Results" } }
+            }
+
             switch {
                 route("/main", exact = true) {
                     ortProjectListPage {}
@@ -52,6 +57,10 @@ class ReactApp : RComponent<RProps, RState>() {
                     ortProjectPage {
                         ortProjectId = id
                     }
+                }
+
+                route("/scanResults") {
+                    scanResultListPage {}
                 }
             }
         }

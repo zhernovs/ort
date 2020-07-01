@@ -64,6 +64,7 @@ import org.ossreviewtoolkit.web.jvm.dao.OrtProjectDao
 import org.ossreviewtoolkit.web.jvm.dao.OrtProjectScanDao
 import org.ossreviewtoolkit.web.jvm.dao.OrtProjectScans
 import org.ossreviewtoolkit.web.jvm.dao.OrtProjects
+import org.ossreviewtoolkit.web.jvm.dao.ScanResultDao
 import org.ossreviewtoolkit.web.jvm.dao.ScanResults
 import org.ossreviewtoolkit.web.jvm.service.AnalyzerService
 import org.ossreviewtoolkit.web.jvm.service.ScannerService
@@ -189,6 +190,12 @@ fun Application.module() {
                 }.orEmpty()
             }
             call.respond(scans)
+        }
+
+        get("/api/scanResults") {
+            val scanResults = transaction { ScanResultDao.all().map { it.detached() } }
+
+            call.respond(scanResults)
         }
 
         post("/api/ortProjects") {

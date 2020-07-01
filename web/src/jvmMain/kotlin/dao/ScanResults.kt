@@ -30,6 +30,7 @@ import org.ossreviewtoolkit.model.Package
 import org.ossreviewtoolkit.model.ScanResult
 import org.ossreviewtoolkit.model.jsonMapper
 import org.ossreviewtoolkit.web.common.ScanStatus
+import org.ossreviewtoolkit.web.common.WebScanResult
 
 object ScanResults : IntIdTable() {
     val packageId: Column<String> = text("package_id")
@@ -47,4 +48,6 @@ class ScanResultDao(id: EntityID<Int>) : IntEntity(id) {
     var status by ScanResults.status
 
     val analyzerRuns by AnalyzerRunDao via AnalyzerRunsScanResults
+
+    fun detached(): WebScanResult = WebScanResult(id.value, packageId.toCoordinates(), status)
 }
