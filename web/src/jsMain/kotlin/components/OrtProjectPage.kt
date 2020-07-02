@@ -101,7 +101,10 @@ class OrtProjectPage(props: OrtProjectPageProps) :
                     when {
                         state.isUpdatingScans -> div("loader") {}
                         state.ortProjectScans.isEmpty() -> styledH2 { +"No scans found." }
-                        else -> ortProjectScanTable { ortProjectScans = state.ortProjectScans }
+                        else -> ortProjectScanTable {
+                            ortProjectId = props.ortProjectId
+                            ortProjectScans = state.ortProjectScans
+                        }
                     }
 
                     if (state.showForm) {

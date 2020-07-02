@@ -32,6 +32,7 @@ import io.ktor.http.HttpHeaders
 import org.ossreviewtoolkit.web.common.ApiResult
 import org.ossreviewtoolkit.web.common.OrtProject
 import org.ossreviewtoolkit.web.common.OrtProjectScan
+import org.ossreviewtoolkit.web.common.WebAnalyzerResult
 import org.ossreviewtoolkit.web.common.WebScanResult
 
 object Api {
@@ -44,6 +45,9 @@ object Api {
         }
     }
 
+    suspend fun fetchAnalyzerResult(ortProjectScanId: Int): WebAnalyzerResult =
+        CLIENT.get("$API_URL/ortProjectScans/$ortProjectScanId/analyzerResult")
+
     suspend fun fetchOrtProject(id: Int): OrtProject? =
         try {
             CLIENT.get("$API_URL/ortProjects/$id")
@@ -52,6 +56,9 @@ object Api {
         }
 
     suspend fun fetchOrtProjects(): List<OrtProject> = CLIENT.get("$API_URL/ortProjects")
+
+    suspend fun fetchOrtProjectScan(ortProjectScanId: Int): OrtProjectScan =
+        CLIENT.get("$API_URL/ortProjectScans/$ortProjectScanId")
 
     suspend fun fetchOrtProjectScans(ortProjectId: Int): List<OrtProjectScan> =
         try {

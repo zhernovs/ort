@@ -23,6 +23,7 @@ import kotlinx.css.*
 
 import org.ossreviewtoolkit.web.js.components.ortProjectListPage
 import org.ossreviewtoolkit.web.js.components.ortProjectPage
+import org.ossreviewtoolkit.web.js.components.ortProjectScanPage
 import org.ossreviewtoolkit.web.js.components.scanResultListPage
 
 import react.RBuilder
@@ -38,6 +39,11 @@ interface IdProps : RProps {
     // Should be Int, but for some reason type conversion does not work and in JS this is still a String, even if
     // defined as Int here. Therefore use String and manually cast.
     var id: String
+}
+
+interface ScanIdProps : RProps {
+    var ortProjectId: String
+    var ortProjectScanId: String
 }
 
 class ReactApp : RComponent<RProps, RState>() {
@@ -63,6 +69,16 @@ class ReactApp : RComponent<RProps, RState>() {
                 switch {
                     route("/main", exact = true) {
                         ortProjectListPage {}
+                    }
+
+                    route<ScanIdProps>("/ortProject/:ortProjectId/scan/:ortProjectScanId") { props ->
+                        val ortProjectId = props.match.params.ortProjectId.toInt()
+                        val ortProjectScanId = props.match.params.ortProjectScanId.toInt()
+
+                        ortProjectScanPage {
+                            this.ortProjectId = ortProjectId
+                            this.ortProjectScanId = ortProjectScanId
+                        }
                     }
 
                     route<IdProps>("/ortProject/:id") { props ->

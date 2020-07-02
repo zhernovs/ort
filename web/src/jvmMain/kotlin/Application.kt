@@ -47,6 +47,7 @@ import java.time.Instant
 import org.jetbrains.exposed.sql.Database
 import org.jetbrains.exposed.sql.SchemaUtils
 import org.jetbrains.exposed.sql.SchemaUtils.withDataBaseLock
+import org.jetbrains.exposed.sql.select
 import org.jetbrains.exposed.sql.transactions.transaction
 
 import org.ossreviewtoolkit.model.config.OrtConfiguration
@@ -58,6 +59,8 @@ import org.ossreviewtoolkit.web.common.ApiResult
 import org.ossreviewtoolkit.web.common.OrtProject
 import org.ossreviewtoolkit.web.common.OrtProjectScanStatus
 import org.ossreviewtoolkit.web.common.ScanStatus
+import org.ossreviewtoolkit.web.common.WebAnalyzerResult
+import org.ossreviewtoolkit.web.common.WebProject
 import org.ossreviewtoolkit.web.jvm.dao.AnalyzerRuns
 import org.ossreviewtoolkit.web.jvm.dao.AnalyzerRunsScanResults
 import org.ossreviewtoolkit.web.jvm.dao.OrtProjectDao
@@ -169,7 +172,7 @@ fun Application.module() {
             val scans = transaction {
                 val ortProject = OrtProjectDao.findById(ortProjectId)
                 ortProject?.scans?.map { ortProjectScan ->
-                    if(ortProjectScan.status == OrtProjectScanStatus.SCANNING_DEPENDENCIES) {
+                    if (ortProjectScan.status == OrtProjectScanStatus.SCANNING_DEPENDENCIES) {
                         // Updating the status here is not very efficient, especially for projects with many
                         // dependencies. This should be replaced with a more efficient approach.
                         // This approach could also give false results due to a race condition if the OrtProjectScan was
@@ -190,6 +193,53 @@ fun Application.module() {
                 }.orEmpty()
             }
             call.respond(scans)
+        }
+
+        get("/api/ortProjectScans/{id}") {
+            val ortProjectScanId = call.parameters["id"]!!.toInt()
+            val ortProjectScan = transaction { OrtProjectScanDao.findById(ortProjectScanId) }
+            if (ortProjectScan != null) {
+                call.respond(ortProjectScan.detached())
+            } else {
+                call.respond(HttpStatusCode.NotFound)
+            }
+        }
+
+        get("/api/ortProjectScans/{id}/analyzerResult") {
+            val ortProjectScanId = call.parameters["id"]!!.toInt()
+
+            val analyzerRunDao = transaction {
+                OrtProjectScanDao.findById(ortProjectScanId)?.analyzerRun
+            }
+
+            if (analyzerRunDao != null) {
+                val projects = transaction {
+                    analyzerRunDao.analyzerRun.result.projects.map { project ->
+                        val allIds = project.collectDependencies() + project.id
+                        val dependencies = allIds.associate { id ->
+                            val status = ScanResults
+                                .slice(ScanResults.status)
+                                .select { ScanResults.packageId eq id.toCoordinates() }
+                                .limit(1)
+                                .map { it[ScanResults.status] }
+                                .firstOrNull()
+
+                            Pair(id.toCoordinates(), status)
+                        }
+
+                        WebProject(
+                            id = project.id.toCoordinates(),
+                            dependencies = dependencies
+                        )
+                    }
+                }
+
+                val webAnalyzerResult = WebAnalyzerResult(projects)
+
+                call.respond(webAnalyzerResult)
+            } else {
+                call.respond(HttpStatusCode.NotFound)
+            }
         }
 
         get("/api/scanResults") {

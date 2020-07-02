@@ -28,8 +28,10 @@ import react.RProps
 import react.RState
 import react.ReactElement
 import react.dom.*
+import react.router.dom.*
 
 interface OrtProjectScanTableProps : RProps {
+    var ortProjectId: Int
     var ortProjectScans: List<OrtProjectScan>
 }
 
@@ -41,6 +43,7 @@ class OrtProjectScanTable(props: OrtProjectScanTableProps) : RComponent<OrtProje
                     th { +"Date" }
                     th { +"Revision" }
                     th { +"Status" }
+                    th { +"" }
                 }
             }
 
@@ -52,6 +55,7 @@ class OrtProjectScanTable(props: OrtProjectScanTableProps) : RComponent<OrtProje
                         td { +formatDateTime(ortProjectScan.dateTime) }
                         td { +ortProjectScan.revision }
                         td { +ortProjectScan.status.name }
+                        td { routeLink("/ortProject/${props.ortProjectId}/scan/${ortProjectScan.id}") { +"Details" } }
                     }
                 }
             }
