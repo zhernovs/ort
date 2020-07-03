@@ -47,8 +47,6 @@ class SpdxExternalReference(
     /**
      * The references type as specified by
      * https://github.com/spdx/spdx-spec/blob/master/chapters/appendix-VI-external-repository-identifiers.md.
-     *
-     * TODO: Introduce an enum for the reference type values.
      */
     val referenceType: String
 ) {
@@ -60,6 +58,23 @@ class SpdxExternalReference(
         PACKAGE_MANAGER("PACKAGE-MANAGER"),
         PERSISTENT_ID("PERSISTENT-ID"),
         OTHER("OTHER");
+    }
+
+    // TODO: Using new values as per https://github.com/spdx/spdx-spec/issues/451.
+    enum class Type(
+        private val typeName: String
+    ) {
+        CPE_22_TYPE ("cpe22Type"),
+        CPE_23_TYPE ("cpe23Type"),
+        MAVEN_CENTRAL("maven-central"),
+        NPM("npm"),
+        NUGET("nuget"),
+        BOWER ("bower"),
+        PURL("purl"),
+        SWH("swh"),
+        OTHER("OTHER");
+
+        override fun toString() = typeName
     }
 
     init {
