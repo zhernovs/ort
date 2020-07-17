@@ -62,7 +62,7 @@ import java.util.SortedSet
 import okhttp3.Request
 
 // The lowest version that supports "--prefer-binary".
-const val PIP_VERSION = "18.0"
+const val PIP_VERSION = "20.0.2"
 
 const val PIPDEPTREE_VERSION = "0.13.2"
 private val PHONY_DEPENDENCIES = mapOf(
@@ -170,11 +170,14 @@ class Pip(
     companion object {
         private val INSTALL_OPTIONS = arrayOf(
             "--no-warn-conflicts",
-            "--prefer-binary"
+            "--prefer-binary",
+            "-vvv",
+            "--no-cache"
         )
 
         // TODO: Need to replace this hard-coded list of domains with e.g. a command line option.
         private val TRUSTED_HOSTS = listOf(
+            "repo.platform.here.com",
             "pypi.org",
             "pypi.python.org" // Legacy
         ).flatMap { listOf("--trusted-host", it) }.toTypedArray()

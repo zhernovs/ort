@@ -124,6 +124,21 @@ class ProcessCapture(vararg command: String, workingDir: File? = null, environme
             "Running '$commandLine' in '$usedWorkingDir'..."
         }
 
+        var outputOffset = 0
+        var errorOffset = 0
+        while (process.isAlive) {
+            println("POLL OUTPUT")
+            val outputLines = stdoutFile.readLines()
+            println(outputLines.subList(outputOffset, outputLines.size).joinToString("\n"))
+            outputOffset = outputLines.size
+
+            val errorLines = stderrFile.readLines()
+            println(errorLines.subList(errorOffset, errorLines.size).joinToString("\n"))
+            errorOffset = errorLines.size
+
+            Thread.sleep(1000)
+        }
+
         process.waitFor()
 
         if (log.delegate.isDebugEnabled) {
