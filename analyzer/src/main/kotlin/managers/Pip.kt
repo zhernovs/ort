@@ -610,20 +610,15 @@ class Pip(
             val name = dependency["package_name"].textValue()
             val version = dependency["installed_version"].textValue()
 
-            val pkg = Package(
+            val pkg = Package.EMPTY.copy(
                 id = Identifier(
                     type = "PyPI",
                     namespace = "",
                     name = name,
                     version = version
-                ),
-                declaredLicenses = sortedSetOf(),
-                description = "",
-                homepageUrl = "",
-                binaryArtifact = RemoteArtifact.EMPTY,
-                sourceArtifact = RemoteArtifact.EMPTY,
-                vcs = VcsInfo.EMPTY
+                )
             )
+
             allPackages += pkg
 
             val packageRef = pkg.toReference()
