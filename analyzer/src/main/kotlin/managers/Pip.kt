@@ -615,10 +615,9 @@ class Pip(
                     version = dependency["installed_version"].textValue()
                 )
             )
+            val packageRef = pkg.toReference()
 
             allPackages += pkg
-
-            val packageRef = pkg.toReference()
             installDependencies += packageRef
 
             parseDependencies(dependency["dependencies"], allPackages, packageRef.dependencies)
