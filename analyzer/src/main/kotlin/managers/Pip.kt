@@ -25,19 +25,8 @@ import com.fasterxml.jackson.databind.node.ArrayNode
 import org.ossreviewtoolkit.analyzer.AbstractPackageManagerFactory
 import org.ossreviewtoolkit.analyzer.PackageManager
 import org.ossreviewtoolkit.downloader.VersionControlSystem
-import org.ossreviewtoolkit.model.EMPTY_JSON_NODE
-import org.ossreviewtoolkit.model.Hash
-import org.ossreviewtoolkit.model.Identifier
-import org.ossreviewtoolkit.model.Package
-import org.ossreviewtoolkit.model.PackageReference
-import org.ossreviewtoolkit.model.Project
-import org.ossreviewtoolkit.model.ProjectAnalyzerResult
-import org.ossreviewtoolkit.model.RemoteArtifact
-import org.ossreviewtoolkit.model.Scope
-import org.ossreviewtoolkit.model.VcsInfo
 import org.ossreviewtoolkit.model.config.AnalyzerConfiguration
 import org.ossreviewtoolkit.model.config.RepositoryConfiguration
-import org.ossreviewtoolkit.model.jsonMapper
 import org.ossreviewtoolkit.utils.CommandLineTool
 import org.ossreviewtoolkit.utils.ORT_NAME
 import org.ossreviewtoolkit.utils.Os
@@ -60,6 +49,7 @@ import java.net.HttpURLConnection
 import java.util.SortedSet
 
 import okhttp3.Request
+import org.ossreviewtoolkit.model.*
 
 // The lowest version that supports "--prefer-binary".
 private const val PIP_VERSION = "18.0"
@@ -254,6 +244,45 @@ class Pip(
         }
         pip.requireSuccess()
 
+        fun getPackageFromPip(id: Identifier): Package {
+            println("XXXX  ------------- GET PACKAGE FROM PIP: ${id.toCoordinates()}")
+            val pipShow = runPipInVirtualEnv(virtualEnvDir, workingDir, "show", id.name)
+            if (pipShow.isSuccess) {
+                println("XXX  GO SUCCESS")
+
+                val map = pipShow.stdout.lines().mapNotNull {
+                    val index = it.indexOf(":")
+                    if (index >= 0) {
+                        it.substring(0, index) to it.substring(index + 1, it.length).trim()
+                    } else {
+                        null
+                    }
+                }.toMap()
+
+                println("XXX  MADE A PACKAGE")
+
+                val homepageUrl = map["Home-page"].orEmpty()
+
+                val pkg = Package.EMPTY.copy(
+                    id = id,
+                    description = map["Summary"].orEmpty(),
+                    homepageUrl = homepageUrl,
+                    declaredLicenses = listOfNotNull(map["License"].takeUnless { it.isNullOrBlank() }).toSortedSet(),
+                    vcs = VcsInfo.EMPTY,
+                    vcsProcessed = processPackageVcs(VcsInfo.EMPTY, homepageUrl)
+                )
+                println("XXX  MADE A MAP")
+
+                println(yamlMapper.writeValueAsString(pkg))
+
+                return pkg
+            } else {
+                println("XXX  GO ERROR")
+            }
+
+            return Package.EMPTY.copy(id = id)
+        }
+
         var declaredLicenses: SortedSet<String> = sortedSetOf<String>()
 
         // First try to get meta-data from "setup.py" in any case, even for "requirements.txt" projects.
@@ -343,7 +372,10 @@ class Pip(
             parseDependencies(projectDependencies, packageTemplates, installDependencies)
 
             // Enrich the package templates with additional meta-data from PyPI.
-            packageTemplates.mapTo(packages) { pkg -> pkg.enrichWith(getPackageFromPyPi(pkg.id)) }
+            packageTemplates.mapTo(packages) { pkg ->
+                pkg.enrichWith(getPackageFromPip(pkg.id))
+                    .enrichWith(getPackageFromPyPi(pkg.id))
+            }
         } else {
             log.error {
                 "Unable to determine dependencies for project in directory '$workingDir':\n${pipdeptree.stderr}"
