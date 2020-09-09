@@ -37,15 +37,15 @@ class FileMatcherTest : WordSpec({
         "match relative and absolute paths to LICENSE file also in subdirectories as expected" {
             with(defaultMatcher) {
                 matches("LICENSE") shouldBe true
-                matches("path/LICENSE") shouldBe false
+                matches("path/LICENSE") shouldBe true
                 matches("prefixLICENSE") shouldBe false
 
-                matches("/LICENSE") shouldBe false
-                matches("/path/LICENSE") shouldBe false
+                matches("/LICENSE") shouldBe true
+                matches("/path/LICENSE") shouldBe true
                 matches("/prefixLICENSE") shouldBe false
 
-                matches("./LICENSE") shouldBe false
-                matches("./path/LICENSE") shouldBe false
+                matches("./LICENSE") shouldBe true
+                matches("./path/LICENSE") shouldBe true
                 matches("./prefixLICENSE") shouldBe false
             }
         }

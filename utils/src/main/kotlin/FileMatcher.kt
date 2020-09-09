@@ -38,7 +38,15 @@ class FileMatcher(
         /**
          * A matcher which uses the default license file names.
          */
-        val LICENSE_FILE_MATCHER = FileMatcher(LICENSE_FILENAMES + ROOT_LICENSE_FILENAMES)
+        val LICENSE_FILE_MATCHER: FileMatcher =
+            run {
+                // The glob matcher do not allow for matching "zero or multiple" trailing directories, thus map each
+                // filename to two patterns to accomplish this.
+                val filenames = LICENSE_FILENAMES + ROOT_LICENSE_FILENAMES
+                val patterns = filenames.flatMap { listOf("**/$it", it) }
+
+                FileMatcher(patterns)
+            }
     }
 
     constructor(vararg patterns: String) : this(patterns.asList())
