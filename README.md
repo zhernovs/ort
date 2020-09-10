@@ -158,6 +158,12 @@ Please see [Getting Started](./docs/getting-started.md) for an introduction to t
 
 Please see the documentation below for details about the ORT configuration.
 
+| Name | Format | Scope | Default | Description |
+| ---- | ----- | ------- | ----------- |
+| ort.conf | HOCON |Global | [Empty](./model/src/main/resources/default.conf) |
+Scope
+
+
 * The [ORT configuration](./model/src/main/resources/reference.conf) file - the main configuration file for the
   operation of ORT. This configuration is maintained by an administrator who manages the ORT instance. In contrast to
   the configuration files in the following, this file rarely changes once ORT is operational.
